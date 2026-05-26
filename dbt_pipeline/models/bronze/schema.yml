@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw_source
+    db: your-gcp-project-id
+    schema: bronze_transactions
+    tables:
+      - name: transactions_raw
+        description: "Raw ingested transactions table loaded by Batch Ingestion Microservice"

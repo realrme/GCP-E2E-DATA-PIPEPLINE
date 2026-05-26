@@ -1,0 +1,70 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  # Placeholder for Airflow common configs. Actual Airflow service definition will be implemented later.
+  image: apache/airflow:${AIRFLOW_IMAGE_TAG:-2.7.1}
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+    - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+    - AIRFLOW__CORE__FERNET_KEY=cryptography_fernet_key_placeholder
+    - AIRFLOW__CORE__LOAD_EXAMPLES=false
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./airflow/config:/opt/airflow/config
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres_airflow:
+      condition: service_healthy
+
+services:
+  # Source PostgreSQL Database (simulating external transactions DB)
+  postgres_source:
+    image: postgres:15-alpine
+    container_name: postgres_source
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+      POSTGRES_DB: ${POSTGRES_DB:-transactions_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./local_db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./local_db/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d transactions_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Airflow Database
+  postgres_airflow:
+    image: postgres:15-alpine
+    container_name: postgres_airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Airflow Webserver
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+
+  # Airflow Scheduler
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow_scheduler
+    command: scheduler
+    restart: always

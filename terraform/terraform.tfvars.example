@@ -1,0 +1,12 @@
+# GCP Project Settings
+project_id         = "your-gcp-project-id"
+region             = "us-central1"
+
+# Service Configurations
+repository_id      = "data-pipeline-repo"
+cloud_run_job_name = "batch-ingestion-job"
+
+# BigQuery Dataset IDs
+bq_dataset_bronze  = "bronze_transactions"
+bq_dataset_silver  = "silver_transactions"
+bq_dataset_gold    = "gold_transactions"

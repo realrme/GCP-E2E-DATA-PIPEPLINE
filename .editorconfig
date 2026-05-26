@@ -1,0 +1,40 @@
+# EditorConfig configuration to enforce coding styles across editors
+# https://editorconfig.org
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# Python (4 spaces indentation)
+[*.py]
+indent_style = space
+indent_size = 4
+
+# SQL (4 spaces indentation)
+[*.sql]
+indent_style = space
+indent_size = 4
+
+# YAML (2 spaces indentation)
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Terraform / HCL (2 spaces indentation)
+[*.{tf,tfvars}]
+indent_style = space
+indent_size = 2
+
+# Markdown / JSON (2 spaces indentation)
+[*.{md,json}]
+indent_style = space
+indent_size = 2
+
+# Dockerfile
+[Dockerfile]
+indent_style = space
+indent_size = 4
