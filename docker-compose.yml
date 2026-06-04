@@ -11,11 +11,13 @@ x-airflow-common:
     - AIRFLOW__CORE__LOAD_EXAMPLES=false
     - GOOGLE_APPLICATION_CREDENTIALS=/home/airflow/.config/gcloud/application_default_credentials.json
     - GCLOUD_PROJECT=${GCP_PROJECT_ID}
+    - _PIP_ADDITIONAL_REQUIREMENTS=dbt-bigquery pandas sqlalchemy psycopg2-binary google-cloud-bigquery google-cloud-bigquery-storage pyarrow db-dtypes pandas-gbq
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/config:/opt/airflow/config
     - ~/.config/gcloud:/home/airflow/.config/gcloud:ro
+    - .:/opt/airflow/project
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     postgres_airflow:
@@ -31,10 +33,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
       POSTGRES_DB: ${POSTGRES_DB:-transactions_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5433:5432"
     volumes:
       - ./local_db/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./local_db/data:/data
+      - ./local_db/olist_dataset:/olist_data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d transactions_db"]
       interval: 10s

@@ -25,32 +25,38 @@ with DAG(
 
     start_pipeline = EmptyOperator(task_id='start_pipeline')
 
-    # Task 1: Trigger Batch Ingestion Job on GCP Cloud Run
-    # (Using BashOperator skeleton; in production, use CloudRunExecuteJobOperator or HTTPOperator)
+    # Task 1: Trigger Batch Ingestion locally in container
     trigger_ingestion = BashOperator(
         task_id='trigger_batch_ingestion',
-        bash_command='echo "Executing Cloud Run batch ingestion job..."',
+        bash_command='python3 /opt/airflow/project/ingestion/src/main.py',
+        env={
+            'POSTGRES_HOST': 'postgres_source',
+            'POSTGRES_PORT': '5432',
+            'POSTGRES_USER': 'postgres',
+            'POSTGRES_PASSWORD': 'postgres_password',
+            'POSTGRES_DB': 'transactions_db',
+            'GCP_PROJECT_ID': 'e2e-data-pipeline-497509',
+            'BQ_DATASET_BRONZE': 'bronze_transactions',
+            'BQ_TABLE': 'transactions_raw'
+        }
     )
 
     # Task 2: Run dbt transformation (Bronze/Staging)
-    # (Using BashOperator skeleton; runs dbt run against bronze model)
     dbt_run_bronze = BashOperator(
         task_id='dbt_run_bronze',
-        bash_command='echo "dbt run --select models/bronze"',
+        bash_command='dbt run --project-dir /opt/airflow/project/dbt_pipeline --profiles-dir /opt/airflow/project/dbt_pipeline --select models/bronze',
     )
 
     # Task 3: Run dbt transformation (Silver/Normalize)
-    # (Using BashOperator skeleton; runs dbt run against silver model)
     dbt_run_silver = BashOperator(
         task_id='dbt_run_silver',
-        bash_command='echo "dbt run --select models/silver"',
+        bash_command='dbt run --project-dir /opt/airflow/project/dbt_pipeline --profiles-dir /opt/airflow/project/dbt_pipeline --select models/silver',
     )
 
     # Task 4: Run dbt transformation (Gold/Aggregate)
-    # (Using BashOperator skeleton; runs dbt run against gold model)
     dbt_run_gold = BashOperator(
         task_id='dbt_run_gold',
-        bash_command='echo "dbt run --select models/gold"',
+        bash_command='dbt run --project-dir /opt/airflow/project/dbt_pipeline --profiles-dir /opt/airflow/project/dbt_pipeline --select models/gold',
     )
 
     end_pipeline = EmptyOperator(task_id='end_pipeline')

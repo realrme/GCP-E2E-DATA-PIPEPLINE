@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw_source
-    db: your-gcp-project-id
+    database: e2e-data-pipeline-497509
     schema: bronze_transactions
     tables:
       - name: transactions_raw
