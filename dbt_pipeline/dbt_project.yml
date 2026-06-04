@@ -21,12 +21,12 @@ models:
     # Config for Bronze (Staging) layer - Raw Ingested Native Tables
     bronze:
       +materialized: table
-      +schema: bronze
+      +schema: bronze_transactions
     # Config for Silver layer - Cleaned/Normalized Native Tables
     silver:
       +materialized: table
-      +schema: silver
+      +schema: silver_transactions
     # Config for Gold layer - Aggregated Native Tables and Views for Looker Studio
     gold:
       +materialized: view
-      +schema: gold
+      +schema: gold_transactions
