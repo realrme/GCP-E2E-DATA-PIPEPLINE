@@ -1,9 +1,9 @@
 version: 2
 
 sources:
-  - name: raw_source
+  - name: bronze
     database: e2e-data-pipeline-497509
     schema: bronze_transactions
     tables:
-      - name: transactions_raw
-        description: "Raw ingested transactions table loaded by Batch Ingestion Microservice"
+      - name: raw_grocery_transactions
+        description: "Raw ingested grocery chain transactions partitioned by ingestion_date"
