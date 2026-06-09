@@ -1,4 +1,6 @@
+import os
 import sys
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -19,21 +21,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 log = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Tables config
-# ---------------------------------------------------------------------------
-TABLES_TO_INGEST = [
-    {"src": "olist_orders", "dest": "raw_orders", "partition_col": "ingestion_date"},
-    {"src": "olist_customers", "dest": "raw_customers", "partition_col": None},
-    {"src": "olist_products", "dest": "raw_products", "partition_col": None},
-    {"src": "olist_sellers", "dest": "raw_sellers", "partition_col": None},
-    {"src": "olist_order_items", "dest": "raw_order_items", "partition_col": None},
-    {"src": "olist_order_payments", "dest": "raw_order_payments", "partition_col": None},
-    {"src": "olist_order_reviews", "dest": "raw_order_reviews", "partition_col": None},
-    {"src": "olist_geolocation", "dest": "raw_geolocation", "partition_col": None},
-    {"src": "product_category_name_translation", "dest": "raw_product_category_name_translation", "partition_col": None},
-]
 
 # ---------------------------------------------------------------------------
 # Extract
@@ -116,11 +103,24 @@ def load_to_bigquery(df: pd.DataFrame, dest_table: str, partition_col: str = Non
 # ---------------------------------------------------------------------------
 def main():
     log.info("=== Batch Ingestion Microservice — START ===")
+    
+    # Load configuration dynamically
+    default_config_path = os.path.join(os.path.dirname(__file__), "tables_config.json")
+    config_path = os.getenv("TABLES_CONFIG_PATH", default_config_path)
+    log.info(f"Loading table config from: {config_path}")
+    
     try:
-        for config in TABLES_TO_INGEST:
+        with open(config_path, "r") as f:
+            tables_to_ingest = json.load(f)
+    except Exception as e:
+        log.error(f"Failed to load table configuration from {config_path}: {e}")
+        sys.exit(1)
+
+    try:
+        for config in tables_to_ingest:
             src = config["src"]
             dest = config["dest"]
-            partition_col = config["partition_col"]
+            partition_col = config.get("partition_col")
             
             log.info(f"Starting ingestion for {src} -> {dest}...")
             df = extract_from_postgres(src)
