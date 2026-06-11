@@ -14,6 +14,18 @@ provider "google" {
 }
 
 # ==============================================================================
+# DATA LINEAGE API (OpenLineage / Dataplex)
+# Enables the Dataplex Data Lineage API so OpenLineage events emitted by
+# Airflow (apache-airflow-providers-openlineage) and dbt (dbt-ol wrapper)
+# are ingested and visualised in GCP Console → Dataplex → Catalog → Lineage.
+# ==============================================================================
+resource "google_project_service" "datalineage" {
+  project            = var.project_id
+  service            = "datalineage.googleapis.com"
+  disable_on_destroy = false
+}
+
+# ==============================================================================
 # BIGQUERY DATASETS (Bronze, Silver, Gold)
 # NOTE: Source database is simulated locally via Docker Compose (postgres_source).
 #       No Cloud SQL instance is provisioned — local Docker Postgres is used instead.
