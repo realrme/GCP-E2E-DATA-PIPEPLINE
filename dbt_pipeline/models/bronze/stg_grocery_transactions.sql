@@ -5,7 +5,7 @@
 -- PRINCIPLE: No business logic here — only:
 --   1. Rename columns to snake_case conventions
 --   2. Cast types explicitly (never trust autodetect)
---   3. Expose the source to downstream models via {{ source() }}
+--   3. Expose the source to downstream models via the source macro
 --
 -- MATERIALIZATION: table
 --   We rebuild this fully on each run — it's cheap because it's

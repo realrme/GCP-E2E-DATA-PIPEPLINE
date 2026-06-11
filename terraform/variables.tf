@@ -38,3 +38,28 @@ variable "bq_dataset_gold" {
   default     = "gold_transactions"
   description = "BigQuery Gold dataset"
 }
+
+variable "db_instance_name" {
+  type        = string
+  default     = "transactions-db-instance"
+  description = "Cloud SQL Instance Name"
+}
+
+variable "db_name" {
+  type        = string
+  default     = "transactions_db"
+  description = "Cloud SQL Database Name"
+}
+
+variable "db_user" {
+  type        = string
+  default     = "postgres"
+  description = "Cloud SQL Database User"
+}
+
+variable "db_password" {
+  type        = string
+  default     = "postgres_password"
+  sensitive   = true
+  description = "Cloud SQL Database Password"
+}

@@ -1,40 +1,27 @@
 from datetime import datetime, timedelta
 from airflow import DAG
+# pyrefly: ignore [missing-import]
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 
 # ============================================================
 # NTT E2E Data Pipeline DAG
 # ============================================================
-# ARCHITECTURE FLOW:
+# ARCHITECTURE:
+#   start → local batch ingestion (PostgreSQL→BQ) → dbt deps
+#         → dbt bronze → dbt silver → dbt snapshot → dbt gold → end
 #
-#  start
-#    │
-#    ▼
-#  trigger_batch_ingestion        ← Python: PostgreSQL → BigQuery (Bronze)
-#    │
-#    ▼
-#  dbt_deps                       ← Install dbt packages (dbt-utils etc.)
-#    │
-#    ▼
-#  dbt_run_bronze                 ← stg_grocery_transactions (type-cast)
-#    │
-#    ▼
-#  dbt_run_silver                 ← dim_customers, dim_stores,
-#    │                               dim_products, fact_grocery_transactions
-#    │                               (INCREMENTAL — only new partitions)
-#    ▼
-#  dbt_snapshot                   ← SCD Type 2: scd_customers history
-#    │
-#    ▼
-#  dbt_run_gold                   ← Aggregated views for Looker Studio
-#    │
-#    ▼
-#  end
+# WHY LOCAL INGESTION HERE?
+#   The ingestion code is still packaged as a standalone Python module/container,
+#   but the local development path lets Airflow execute that module directly.
+#   Airflow connects to the Docker Compose source Postgres service, then writes
+#   the extracted batch into BigQuery using mounted gcloud ADC credentials.
 # ============================================================
 
-DBT_PROJECT_DIR = '/opt/airflow/project/dbt_pipeline'
-DBT_PROFILES_DIR = '/opt/airflow/project/dbt_pipeline'
+DBT_PROJECT_DIR  = '/tmp/dbt_pipeline'
+DBT_PROFILES_DIR = '/tmp/dbt_pipeline'
+
+
 
 default_args = {
     'owner': 'airflow',
@@ -48,7 +35,7 @@ default_args = {
 with DAG(
     'ntt_e2e_data_pipeline',
     default_args=default_args,
-    description='Orchestrator DAG for NTT End-to-End Data Pipeline (Ingestion → dbt Bronze → Silver → Snapshot → Gold)',
+    description='NTT E2E Pipeline: Ingestion → dbt Bronze → Silver (Star Schema) → Snapshot → Gold',
     schedule_interval=timedelta(days=1),
     start_date=datetime(2026, 5, 1),
     catchup=False,
@@ -57,14 +44,13 @@ with DAG(
 
     start_pipeline = EmptyOperator(task_id='start_pipeline')
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 1: Batch Ingestion
-    # Reads from PostgreSQL (source DB) and loads to BigQuery
-    # (bronze_transactions.raw_grocery_transactions)
-    # ──────────────────────────────────────────────────────────
+    # ── STEP 1: Batch Ingestion (local Postgres -> BigQuery Bronze) ───────
     trigger_ingestion = BashOperator(
         task_id='trigger_batch_ingestion',
-        bash_command='python3 /opt/airflow/project/ingestion/src/main.py',
+        bash_command=(
+            'cd /opt/airflow/project && '
+            'python ingestion/src/main.py'
+        ),
         env={
             'POSTGRES_HOST': 'postgres_source',
             'POSTGRES_PORT': '5432',
@@ -73,15 +59,19 @@ with DAG(
             'POSTGRES_DB': 'transactions_db',
             'GCP_PROJECT_ID': 'e2e-data-pipeline-497509',
             'BQ_DATASET_BRONZE': 'bronze_transactions',
-            'BQ_TABLE': 'raw_grocery_transactions',  # ← updated table name
-        }
+            'TABLES_CONFIG_PATH': '/opt/airflow/project/ingestion/src/tables_config.json',
+            'GOOGLE_APPLICATION_CREDENTIALS': '/home/airflow/.config/gcloud/application_default_credentials.json',
+        },
     )
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 2: Install dbt packages
-    # Installs packages defined in packages.yml (e.g., dbt_utils)
-    # This must run before any dbt run/snapshot commands
-    # ──────────────────────────────────────────────────────────
+
+    # ── STEP 1.5: Copy dbt project to /tmp (VirtioFS workaround) ───────────
+    copy_dbt_project = BashOperator(
+        task_id='copy_dbt_project',
+        bash_command='rm -rf /tmp/dbt_pipeline && cp -r /opt/airflow/project/dbt_pipeline /tmp/dbt_pipeline'
+    )
+
+    # ── STEP 2: Install dbt packages (dbt_utils for surrogate keys) ────────
     dbt_deps = BashOperator(
         task_id='dbt_deps',
         bash_command=(
@@ -91,12 +81,7 @@ with DAG(
         ),
     )
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 3: dbt Bronze Layer
-    # Model: stg_grocery_transactions
-    # Casts raw BigQuery types → clean typed columns
-    # Materialization: table (full rebuild, thin wrapper)
-    # ──────────────────────────────────────────────────────────
+    # ── STEP 3: dbt Bronze — stg_grocery_transactions ──────────────────────
     dbt_run_bronze = BashOperator(
         task_id='dbt_run_bronze',
         bash_command=(
@@ -107,19 +92,8 @@ with DAG(
         ),
     )
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 4: dbt Silver Layer (Star Schema)
-    # Models:
-    #   - dim_customers  → one row per unique customer
-    #   - dim_stores     → one row per unique store
-    #   - dim_products   → one row per unique product+aisle
-    #   - fact_grocery_transactions → INCREMENTAL fact table
-    #
-    # WHY INCREMENTAL?
-    #   The fact table grows daily. We only process NEW rows
-    #   (WHERE ingestion_date > MAX(ingestion_date) in the table)
-    #   to avoid reprocessing all historical data every run.
-    # ──────────────────────────────────────────────────────────
+    # ── STEP 4: dbt Silver — Star Schema ───────────────────────────────────
+    # dim_customers, dim_stores, dim_products → fact_grocery_transactions
     dbt_run_silver = BashOperator(
         task_id='dbt_run_silver',
         bash_command=(
@@ -130,16 +104,7 @@ with DAG(
         ),
     )
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 5: dbt Snapshot (SCD Type 2)
-    # Snapshot: scd_customers
-    # Tracks loyalty_points changes over time.
-    # Each change creates a new row; old rows get dbt_valid_to set.
-    #
-    # WHY AFTER SILVER?
-    #   The snapshot reads from dim_customers (a silver model),
-    #   so silver must run first to have the latest state.
-    # ──────────────────────────────────────────────────────────
+    # ── STEP 5: SCD Type 2 snapshot — scd_customers ────────────────────────
     dbt_snapshot = BashOperator(
         task_id='dbt_snapshot_scd',
         bash_command=(
@@ -149,12 +114,7 @@ with DAG(
         ),
     )
 
-    # ──────────────────────────────────────────────────────────
-    # STEP 6: dbt Gold Layer
-    # Aggregated views and summary tables for Looker Studio.
-    # Built on top of Silver (reads from fact + dims).
-    # Materialization: view (no storage cost, always fresh)
-    # ──────────────────────────────────────────────────────────
+    # ── STEP 6: dbt Gold — mart_sales_summary (VIEW for Looker Studio) ─────
     dbt_run_gold = BashOperator(
         task_id='dbt_run_gold',
         bash_command=(
@@ -167,13 +127,11 @@ with DAG(
 
     end_pipeline = EmptyOperator(task_id='end_pipeline')
 
-    # ──────────────────────────────────────────────────────────
-    # DAG Task Dependency Flow
-    # Each >> means "must complete successfully before next runs"
-    # ──────────────────────────────────────────────────────────
+    # ── DAG Flow ────────────────────────────────────────────────────────────
     (
         start_pipeline
         >> trigger_ingestion
+        >> copy_dbt_project
         >> dbt_deps
         >> dbt_run_bronze
         >> dbt_run_silver
