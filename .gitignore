@@ -1,9 +1,9 @@
-# Byte-compiled / optimized / DLL files
+# ==============================================================
+# Python
+# ==============================================================
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -24,7 +24,9 @@ python-wheels/
 *.egg
 MANIFEST
 
-# Environment variables & secrets
+# ==============================================================
+# Environment Variables & Secrets  ← NEVER commit these
+# ==============================================================
 .env
 .env.*
 !.env.example
@@ -32,26 +34,56 @@ secrets/
 *.pem
 *.json
 !credentials-example.json
+# GCP service account key files (common names)
+*-service-account*.json
+*-sa-key*.json
+application_default_credentials.json
 
-# Terraform
+# ==============================================================
+# Terraform  ← state files contain resource IDs & secrets
+# ==============================================================
 .terraform/
+.terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
-.terraform.lock.hcl
 *.tfvars
 !terraform.tfvars.example
 
+# ==============================================================
 # dbt
+# ==============================================================
 dbt_packages/
-logs/
-target/
-profiles.yml
-!profiles.yml.example
+dbt_pipeline/logs/
+dbt_pipeline/target/
+dbt_pipeline/profiles.yml
+!dbt_pipeline/profiles.yml.example
 
+# ==============================================================
 # Airflow
+# ==============================================================
 airflow/logs/
 airflow/airflow.db
 airflow/webserver_config.py
 
-# Olist Dataset CSV files
-local_db/olist_dataset/
+# ==============================================================
+# macOS
+# ==============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================
+# Orphan / generated directories
+# ==============================================================
+# Cloud SQL Proxy socket directories (created by proxy tool)
+*:*:*/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,121 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: >
+      **Silver Layer — Customer Dimension**
+
+      One row per unique customer, deduplicated from the staging transactions table.
+      Uses a surrogate MD5 key (`customer_key`) for stable referential integrity
+      regardless of upstream source ID format changes.
+      Materialized as a **table** (full rebuild on each run).
+    columns:
+      - name: customer_key
+        description: "MD5 surrogate key — stable hash of customer_id. Primary key for this dimension."
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Natural business key for the customer (from source PostgreSQL)."
+        tests:
+          - unique
+          - not_null
+      - name: loyalty_points
+        description: "Most recent loyalty points balance for this customer, taken from the latest transaction record."
+
+  - name: dim_products
+    description: >
+      **Silver Layer — Product Dimension**
+
+      One row per unique product/aisle combination, deduplicated from staging.
+      Aisle is included in the key to handle products that appear in multiple aisles.
+      Materialized as a **table**.
+    columns:
+      - name: product_key
+        description: "MD5 surrogate key — hash of product_name + aisle. Primary key for this dimension."
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: "Display name of the grocery product (title-cased)."
+        tests:
+          - not_null
+      - name: aisle
+        description: "Store aisle where the product is located (title-cased)."
+        tests:
+          - not_null
+
+  - name: dim_stores
+    description: >
+      **Silver Layer — Store Dimension**
+
+      One row per unique store location, deduplicated from staging transactions.
+      Materialized as a **table**.
+    columns:
+      - name: store_key
+        description: "MD5 surrogate key — stable hash of store_name. Primary key for this dimension."
+        tests:
+          - unique
+          - not_null
+      - name: store_name
+        description: "Display name of the store location (title-cased)."
+        tests:
+          - not_null
+
+  - name: fact_grocery_transactions
+    description: >
+      **Silver Layer — Central Fact Table**
+
+      One row per grocery transaction line item. This is the core fact table
+      in the Star Schema, measuring purchase events across customers, products, and stores.
+
+      **Materialization:** Incremental with MERGE strategy — only new rows since the last
+      `ingestion_date` are processed on each Airflow run. Partitioned by `transaction_date`
+      and clustered by `store_key` + `product_key` for cost-efficient BigQuery queries.
+
+      **Data quality:** Rows with `final_amount < 0` (discount exceeded price) are filtered out.
+    columns:
+      - name: transaction_key
+        description: "MD5 surrogate key — unique per transaction event (hash of customer_id, store, date, product, aisle). Primary key."
+        tests:
+          - unique
+          - not_null
+      - name: customer_key
+        description: "Foreign key → dim_customers.customer_key"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+      - name: store_key
+        description: "Foreign key → dim_stores.store_key"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_key
+      - name: product_key
+        description: "Foreign key → dim_products.product_key"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+      - name: transaction_date
+        description: "Timestamp of when the grocery transaction occurred."
+        tests:
+          - not_null
+      - name: quantity
+        description: "Number of units purchased in this line item."
+      - name: unit_price
+        description: "Price per single unit (before discount), in local currency."
+      - name: total_amount
+        description: "Gross revenue for this line item (unit_price × quantity), before any discounts."
+      - name: discount_amount
+        description: "Total discount applied to this line item."
+      - name: final_amount
+        description: "Net revenue after discounts (total_amount − discount_amount). Only rows ≥ 0 are included."
+      - name: loyalty_points
+        description: "Loyalty points earned on this transaction."
+      - name: ingestion_date
+        description: "Date the record was loaded into BigQuery by the Airflow ingestion task. Used as the incremental partition key."

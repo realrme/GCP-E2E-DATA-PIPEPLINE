@@ -1,6 +1,0 @@
-transaction_id,customer_id,transaction_date,amount,payment_method,product_category,store_location
-TXN001,CUST100,2026-05-01 10:00:00,120.50,Credit Card,Electronics,New York
-TXN002,CUST101,2026-05-01 10:15:00,45.00,Debit Card,Clothing,San Francisco
-TXN003,CUST102,2026-05-01 11:30:00,15.75,Cash,Groceries,Chicago
-TXN004,CUST100,2026-05-02 09:45:00,220.00,Credit Card,Electronics,New York
-TXN005,CUST103,2026-05-02 14:20:00,89.99,Mobile Payment,Home & Kitchen,Seattle

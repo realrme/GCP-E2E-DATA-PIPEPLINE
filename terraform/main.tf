@@ -14,17 +14,21 @@ provider "google" {
 }
 
 # ==============================================================================
-# ARTIFACT REGISTRY
+# DATA LINEAGE API (OpenLineage / Dataplex)
+# Enables the Dataplex Data Lineage API so OpenLineage events emitted by
+# Airflow (apache-airflow-providers-openlineage) and dbt (dbt-ol wrapper)
+# are ingested and visualised in GCP Console → Dataplex → Catalog → Lineage.
 # ==============================================================================
-# resource "google_artifact_registry_repository" "pipeline_repo" {
-#   location      = var.region
-#   repository_id = var.repository_id
-#   description   = "Docker repository for ingestion microservices"
-#   format        = "DOCKER"
-# }
+resource "google_project_service" "datalineage" {
+  project            = var.project_id
+  service            = "datalineage.googleapis.com"
+  disable_on_destroy = false
+}
 
 # ==============================================================================
 # BIGQUERY DATASETS (Bronze, Silver, Gold)
+# NOTE: Source database is simulated locally via Docker Compose (postgres_source).
+#       No Cloud SQL instance is provisioned — local Docker Postgres is used instead.
 # ==============================================================================
 resource "google_bigquery_dataset" "bronze" {
   dataset_id  = var.bq_dataset_bronze
@@ -58,31 +62,3 @@ resource "google_bigquery_dataset" "gold" {
     environment = "dev"
   }
 }
-
-# ==============================================================================
-# CLOUD RUN JOB (BATCH INGESTION MICROSERVICE)
-# ==============================================================================
-# resource "google_cloud_run_v2_job" "ingestion_job" {
-#   name     = var.cloud_run_job_name
-#   location = var.region
-# 
-#   template {
-#     template {
-#       containers {
-#         # Real ingestion service image
-#         image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_id}/${var.cloud_run_job_name}:latest"
-# 
-#         env {
-#           name  = "GCP_PROJECT_ID"
-#           value = var.project_id
-#         }
-#         env {
-#           name  = "BQ_DATASET_BRONZE"
-#           value = var.bq_dataset_bronze
-#         }
-#       }
-#     }
-#   }
-# 
-#   depends_on = [google_artifact_registry_repository.pipeline_repo]
-# }

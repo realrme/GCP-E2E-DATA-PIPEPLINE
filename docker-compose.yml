@@ -11,7 +11,23 @@ x-airflow-common:
     - AIRFLOW__CORE__LOAD_EXAMPLES=false
     - GOOGLE_APPLICATION_CREDENTIALS=/home/airflow/.config/gcloud/application_default_credentials.json
     - GCLOUD_PROJECT=${GCP_PROJECT_ID}
-    - _PIP_ADDITIONAL_REQUIREMENTS=dbt-bigquery pandas sqlalchemy psycopg2-binary google-cloud-bigquery google-cloud-bigquery-storage pyarrow db-dtypes pandas-gbq
+    - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+    - BQ_DATASET_BRONZE=${BQ_DATASET_BRONZE:-bronze_transactions}
+    - POSTGRES_HOST=postgres_source
+    - POSTGRES_PORT=5432
+    - POSTGRES_USER=${POSTGRES_USER:-postgres}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres_password}
+    - POSTGRES_DB=${POSTGRES_DB:-transactions_db}
+    - TABLES_CONFIG_PATH=/opt/airflow/project/ingestion/src/tables_config.json
+    # ── OpenLineage → GCP Dataplex Data Lineage API ───────────────────────────
+    # Events are POSTed to the regional Dataplex processOpenLineageRunEvent
+    # endpoint using Application Default Credentials (ADC) already mounted
+    # at /home/airflow/.config/gcloud — no extra service account key needed.
+    - AIRFLOW__OPENLINEAGE__DISABLED=true
+    - OPENLINEAGE_NAMESPACE=ntt-e2e-pipeline
+    - AIRFLOW__OPENLINEAGE__NAMESPACE=ntt-e2e-pipeline
+    - AIRFLOW__OPENLINEAGE__DEBUG_MODE=true
+    - _PIP_ADDITIONAL_REQUIREMENTS=dbt-bigquery pandas sqlalchemy psycopg2-binary google-cloud-bigquery google-cloud-bigquery-storage pyarrow db-dtypes pandas-gbq openlineage-python openlineage-dbt apache-airflow-providers-openlineage
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -22,6 +38,10 @@ x-airflow-common:
   depends_on:
     postgres_airflow:
       condition: service_healthy
+    postgres_source:
+      condition: service_healthy
+    postgres_source_seed:
+      condition: service_completed_successfully
 
 services:
   # Source PostgreSQL Database (simulating external transactions DB)
@@ -35,14 +55,29 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./local_db/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./local_db/data:/data
-      - ./local_db/olist_dataset:/olist_data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d transactions_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # One-shot source seed job for local development
+  postgres_source_seed:
+    build:
+      context: ./local_db
+      dockerfile: seed.Dockerfile
+    container_name: postgres_source_seed
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+      POSTGRES_DB: ${POSTGRES_DB:-transactions_db}
+      POSTGRES_HOST: postgres_source
+      POSTGRES_PORT: 5432
+    depends_on:
+      postgres_source:
+        condition: service_healthy
+    restart: "no"
 
   # Airflow Database
   postgres_airflow:
@@ -77,6 +112,10 @@ services:
     depends_on:
       postgres_airflow:
         condition: service_healthy
+      postgres_source:
+        condition: service_healthy
+      postgres_source_seed:
+        condition: service_completed_successfully
 
   # Airflow Webserver
   airflow-webserver:
@@ -89,6 +128,10 @@ services:
     depends_on:
       postgres_airflow:
         condition: service_healthy
+      postgres_source:
+        condition: service_healthy
+      postgres_source_seed:
+        condition: service_completed_successfully
       airflow-init:
         condition: service_completed_successfully
 
@@ -101,6 +144,9 @@ services:
     depends_on:
       postgres_airflow:
         condition: service_healthy
+      postgres_source:
+        condition: service_healthy
+      postgres_source_seed:
+        condition: service_completed_successfully
       airflow-init:
         condition: service_completed_successfully
-

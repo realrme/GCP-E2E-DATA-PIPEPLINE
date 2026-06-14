@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCP E2E Data Pipeline — NTT Project Presentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #4F8EF7;
+      --indigo:  #6C5CE7;
+      --cyan:    #00B4D8;
+      --green:   #00B894;
+      --orange:  #FDCB6E;
+      --pink:    #E84393;
+      --dark:    #0D1117;
+      --dark2:   #161B22;
+      --dark3:   #21262D;
+      --border:  rgba(255,255,255,0.08);
+      --text:    #E6EDF3;
+      --muted:   #8B949E;
+    }
+
+    html, body { width: 100%; height: 100%; background: var(--dark); overflow: hidden; }
+
+    /* ── Slide Container ── */
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 60px 80px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      transform: translateY(30px);
+      font-family: 'Inter', sans-serif; color: var(--text);
+    }
+    .slide.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .slide.exit   { opacity: 0; transform: translateY(-30px); }
+
+    /* ── Navigation ── */
+    nav {
+      position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px; align-items: center; z-index: 100;
+      background: rgba(22,27,34,0.85); backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 50px;
+      padding: 12px 24px;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); cursor: pointer;
+      transition: all 0.3s;
+    }
+    .dot.active { background: var(--blue); width: 24px; border-radius: 4px; }
+    .btn {
+      background: none; border: 1px solid var(--border); color: var(--text);
+      padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 13px;
+      font-family: 'Inter', sans-serif; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: var(--dark3); border-color: var(--blue); color: var(--blue); }
+    .slide-counter {
+      font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+      min-width: 40px; text-align: center;
+    }
+
+    /* ── Keyboard hint ── */
+    .kbd-hint {
+      position: fixed; top: 24px; right: 32px;
+      font-size: 11px; color: var(--muted);
+      background: var(--dark2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 12px;
+    }
+
+    /* ══════════════════════════════════════
+       SLIDE 1 — TITLE
+    ══════════════════════════════════════ */
+    .s1-bg {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .s1-orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35;
+      animation: float 8s ease-in-out infinite;
+    }
+    .s1-orb:nth-child(1) { width: 500px; height: 500px; background: radial-gradient(circle, var(--blue), transparent); top: -100px; left: -100px; animation-delay: 0s; }
+    .s1-orb:nth-child(2) { width: 400px; height: 400px; background: radial-gradient(circle, var(--indigo), transparent); bottom: -80px; right: -80px; animation-delay: -4s; }
+    .s1-orb:nth-child(3) { width: 300px; height: 300px; background: radial-gradient(circle, var(--cyan), transparent); top: 40%; left: 60%; animation-delay: -2s; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .s1-content { position: relative; text-align: center; max-width: 900px; }
+    .s1-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(79,142,247,0.12); border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 30px; padding: 8px 20px; font-size: 13px;
+      color: var(--blue); margin-bottom: 28px; letter-spacing: 0.05em;
+    }
+    .s1-badge .dot-live { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .s1-title { font-size: clamp(36px, 5vw, 68px); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+    .s1-title span { background: linear-gradient(135deg, var(--blue), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .s1-sub { font-size: 18px; color: var(--muted); font-weight: 400; line-height: 1.6; margin-bottom: 40px; max-width: 640px; margin-left: auto; margin-right: auto; }
+    .s1-tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .tag {
+      padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border);
+    }
+    .tag-blue   { background: rgba(79,142,247,.15); border-color: rgba(79,142,247,.3); color: var(--blue); }
+    .tag-green  { background: rgba(0,184,148,.15);  border-color: rgba(0,184,148,.3);  color: var(--green); }
+    .tag-purple { background: rgba(108,92,231,.15); border-color: rgba(108,92,231,.3); color: var(--indigo); }
+    .tag-cyan   { background: rgba(0,180,216,.15);  border-color: rgba(0,180,216,.3);  color: var(--cyan); }
+    .tag-orange { background: rgba(253,203,110,.15);border-color: rgba(253,203,110,.3);color: var(--orange); }
+
+    /* ══════════════════════════════════════
+       SLIDE 2 — OVERVIEW
+    ══════════════════════════════════════ */
+    .s-heading {
+      font-size: clamp(24px, 3.5vw, 44px); font-weight: 800; margin-bottom: 10px;
+      text-align: center;
+    }
+    .s-sub { font-size: 16px; color: var(--muted); text-align: center; margin-bottom: 48px; }
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 980px;
+    }
+    .card {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px 24px; position: relative; overflow: hidden;
+      transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(79,142,247,.4); box-shadow: 0 8px 32px rgba(79,142,247,.12); }
+    .card-icon { font-size: 32px; margin-bottom: 14px; }
+    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .card-text  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .card-accent {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 16px 16px 0 0;
+    }
+
+    /* ══════════════════════════════════════
+       SLIDE 3 — ARCHITECTURE DIAGRAM
+    ══════════════════════════════════════ */
+    .arch-container { width: 100%; max-width: 1000px; }
+    .arch-title { text-align: center; font-size: clamp(22px,3vw,40px); font-weight: 800; margin-bottom: 8px; }
+    .arch-sub   { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 36px; }
+
+    .pipeline-flow {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; flex-wrap: nowrap;
+    }
+    .pipe-node {
+      display: flex; flex-direction: column; align-items: center;
+      background: var(--dark2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 16px; min-width: 130px;
+      position: relative; transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .pipe-node:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .pipe-icon { font-size: 28px; margin-bottom: 8px; }
+    .pipe-label { font-size: 12px; font-weight: 600; text-align: center; }
+    .pipe-tech  { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+    .pipe-arrow {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 0 4px; color: var(--muted); font-size: 18px; flex-shrink: 0;
+    }
+    .pipe-arrow-label { font-size: 9px; color: var(--muted); white-space: nowrap; margin-top: 2px; }
+
+    .layers-row {
+      display: flex; gap: 16px; margin-top: 20px; width: 100%;
+      justify-content: center;
+    }
+    .layer-badge {
+      flex: 1; max-width: 200px;
+      padding: 10px 16px; border-radius: 10px; text-align: center;
+      font-size: 12px; font-weight: 600; border: 1px solid transparent;
+    }
+
+    /* ══════════════════════════════════════
+       SLIDE 4 — TECH STACK
+    ══════════════════════════════════════ */
+    .tech-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+      width: 100%; max-width: 960px;
+    }
+    .tech-card {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 16px; text-align: center;
+      transition: all 0.3s;
+    }
+    .tech-card:hover { transform: translateY(-3px); border-color: rgba(79,142,247,.35); }
+    .tech-logo { font-size: 36px; margin-bottom: 10px; }
+    .tech-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .tech-role { font-size: 11px; color: var(--muted); }
+
+    /* ══════════════════════════════════════
+       SLIDE 5 — INGESTION
+    ══════════════════════════════════════ */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; width: 100%; max-width: 980px; }
+    .code-block {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 14px;
+      padding: 24px; overflow: auto;
+    }
+    .code-block pre {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7;
+      color: #E6EDF3;
+    }
+    .kw  { color: #FF7B72; } /* keyword */
+    .fn  { color: #79C0FF; } /* function */
+    .str { color: #A5D6FF; } /* string */
+    .cm  { color: #8B949E; } /* comment */
+    .num { color: #F0883E; } /* number */
+    .info-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .info-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: var(--dark2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px;
+    }
+    .info-item-icon { font-size: 20px; flex-shrink: 0; }
+    .info-item-text { font-size: 13px; line-height: 1.6; }
+    .info-item-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+
+    /* ══════════════════════════════════════
+       SLIDE 6 — DBT MEDALLION
+    ══════════════════════════════════════ */
+    .medal-row { display: flex; gap: 16px; width: 100%; max-width: 980px; align-items: stretch; }
+    .medal-col {
+      flex: 1; background: var(--dark2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; position: relative; overflow: hidden;
+    }
+    .medal-col-header { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+    .medal-table { font-size: 12px; color: var(--muted); margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; }
+    .medal-model { 
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;
+      background: rgba(255,255,255,.04); font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    }
+    .medal-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .arrow-down { text-align: center; font-size: 22px; padding: 6px 0; color: var(--muted); }
+
+    /* ══════════════════════════════════════
+       SLIDE 7 — OPENLINEAGE
+    ══════════════════════════════════════ */
+    .lineage-flow {
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+      width: 100%; max-width: 720px;
+    }
+    .lin-node {
+      width: 100%; background: var(--dark2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .lin-node-icon { font-size: 22px; flex-shrink: 0; }
+    .lin-node-label { font-size: 14px; font-weight: 600; }
+    .lin-node-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .lin-arrow {
+      width: 2px; height: 28px; background: linear-gradient(to bottom, var(--blue), var(--cyan));
+      margin: 2px 0; opacity: 0.6;
+    }
+    .lin-arrow-label { font-size: 10px; color: var(--cyan); text-align: center; margin: -16px 0 2px; font-family: 'JetBrains Mono', monospace; }
+    .lin-result {
+      width: 100%; background: linear-gradient(135deg, rgba(0,184,148,.1), rgba(0,180,216,.08));
+      border: 1px solid rgba(0,184,148,.3); border-radius: 12px; padding: 20px 24px;
+      margin-top: 24px; text-align: center;
+    }
+
+    /* ══════════════════════════════════════
+       SLIDE 8 — TERRAFORM
+    ══════════════════════════════════════ */
+    .tf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; max-width: 980px; }
+    .tf-resource {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 22px;
+    }
+    .tf-resource-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .tf-resource-icon { font-size: 22px; }
+    .tf-resource-name { font-size: 13px; font-weight: 700; }
+    .tf-resource-type { font-size: 11px; color: var(--indigo); font-family: 'JetBrains Mono', monospace; }
+    .tf-detail { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .tf-detail code { background: var(--dark3); border-radius: 4px; padding: 1px 5px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan); }
+
+    /* ══════════════════════════════════════
+       SLIDE 9 — RESULTS / DEMO
+    ══════════════════════════════════════ */
+    .results-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; width: 100%; max-width: 960px; }
+    .metric-card {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px 20px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .metric-val { font-size: 42px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+    .metric-label { font-size: 13px; color: var(--muted); }
+    .metric-sub   { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+    .glow-blue   { background: radial-gradient(ellipse at center, rgba(79,142,247,.15) 0%, transparent 70%); position: absolute; inset: 0; pointer-events: none; }
+    .glow-green  { background: radial-gradient(ellipse at center, rgba(0,184,148,.15) 0%, transparent 70%); position: absolute; inset: 0; pointer-events: none; }
+    .glow-purple { background: radial-gradient(ellipse at center, rgba(108,92,231,.15) 0%, transparent 70%); position: absolute; inset: 0; pointer-events: none; }
+    .demo-steps { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 960px; margin-top: 20px; }
+    .demo-step  {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 18px; font-size: 13px;
+    }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════
+       SLIDE 10 — FINAL
+    ══════════════════════════════════════ */
+    .final-content { text-align: center; max-width: 700px; }
+    .final-title { font-size: clamp(32px, 5vw, 60px); font-weight: 800; margin-bottom: 16px; }
+    .final-title span { background: linear-gradient(135deg, var(--green), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .final-sub  { font-size: 17px; color: var(--muted); margin-bottom: 40px; line-height: 1.7; }
+    .final-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; width: 100%; max-width: 680px; }
+    .final-item {
+      background: var(--dark2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px; font-size: 13px;
+    }
+    .check { color: var(--green); font-size: 16px; flex-shrink: 0; }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      .slide { padding: 40px 32px; }
+      .overview-grid, .tech-grid, .results-grid { grid-template-columns: repeat(2,1fr); }
+      .two-col, .medal-row, .tf-grid { grid-template-columns: 1fr; }
+      .pipeline-flow { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- ══ SLIDE 1: TITLE ══ -->
+  <div class="slide active" id="s0">
+    <div class="s1-bg">
+      <div class="s1-orb"></div>
+      <div class="s1-orb"></div>
+      <div class="s1-orb"></div>
+    </div>
+    <div class="s1-content">
+      <div class="s1-badge">
+        <span class="dot-live"></span>
+        NTT Data Engineering Project — 2026
+      </div>
+      <h1 class="s1-title">GCP End-to-End<br /><span>Data Pipeline</span></h1>
+      <p class="s1-sub">
+        An automated, production-grade data engineering system that ingests, transforms,
+        and serves grocery transaction data — with full observability via OpenLineage.
+      </p>
+      <div class="s1-tags">
+        <span class="tag tag-blue">Apache Airflow</span>
+        <span class="tag tag-green">dbt Core</span>
+        <span class="tag tag-purple">BigQuery</span>
+        <span class="tag tag-cyan">OpenLineage</span>
+        <span class="tag tag-orange">Terraform</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 2: PROJECT OVERVIEW ══ -->
+  <div class="slide" id="s1">
+    <h2 class="s-heading">Project Overview</h2>
+    <p class="s-sub">What this pipeline does and why it matters</p>
+    <div class="overview-grid">
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--blue), var(--cyan));"></div>
+        <div class="card-icon">🎯</div>
+        <div class="card-title">Business Goal</div>
+        <div class="card-text">Transform raw grocery transaction data from a PostgreSQL source into clean, analytics-ready tables in BigQuery for business reporting and KPI tracking.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--green), var(--cyan));"></div>
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">Automated Scheduling</div>
+        <div class="card-text">Apache Airflow orchestrates the entire pipeline on a daily schedule — zero manual intervention required from ingestion through to the gold data mart.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--indigo), var(--pink));"></div>
+        <div class="card-icon">🔍</div>
+        <div class="card-title">Full Observability</div>
+        <div class="card-text">OpenLineage metadata events are pushed to GCP Dataplex, giving complete visibility into every data movement — from source Postgres to the final Gold layer.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--orange), var(--pink));"></div>
+        <div class="card-icon">🏗️</div>
+        <div class="card-title">Infrastructure as Code</div>
+        <div class="card-text">All GCP resources (BigQuery datasets, APIs, IAM) are provisioned and versioned via Terraform — reproducible across environments with a single command.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--cyan), var(--blue));"></div>
+        <div class="card-icon">🧊</div>
+        <div class="card-title">Medallion Architecture</div>
+        <div class="card-text">Data flows through Bronze → Silver → Gold layers using dbt models, each adding a transformation layer: staging, star schema, and aggregate reporting.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent" style="background: linear-gradient(90deg, var(--green), var(--blue));"></div>
+        <div class="card-icon">🐳</div>
+        <div class="card-title">Local Dev with Docker</div>
+        <div class="card-text">The entire stack runs locally via Docker Compose with a seeded PostgreSQL source database, enabling full development and testing without cloud costs.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3: ARCHITECTURE ══ -->
+  <div class="slide" id="s2">
+    <div class="arch-container">
+      <h2 class="arch-title">Pipeline Architecture</h2>
+      <p class="arch-sub">End-to-end flow from PostgreSQL source to BigQuery Gold layer</p>
+      <div class="pipeline-flow">
+        <div class="pipe-node" style="border-color: rgba(79,142,247,.4);">
+          <div class="pipe-icon">🐘</div>
+          <div class="pipe-label">PostgreSQL</div>
+          <div class="pipe-tech">postgres_source<br/>Docker container</div>
+        </div>
+        <div class="pipe-arrow">
+          <div>→</div>
+          <div class="pipe-arrow-label">Batch<br/>Ingest</div>
+        </div>
+        <div class="pipe-node" style="border-color: rgba(253,203,110,.4);">
+          <div class="pipe-icon">🌀</div>
+          <div class="pipe-label">Airflow</div>
+          <div class="pipe-tech">DAG Orchestration<br/>LocalExecutor</div>
+        </div>
+        <div class="pipe-arrow">
+          <div>→</div>
+          <div class="pipe-arrow-label">Load<br/>DataFrame</div>
+        </div>
+        <div class="pipe-node" style="border-color: rgba(0,180,216,.4);">
+          <div class="pipe-icon">🥉</div>
+          <div class="pipe-label">Bronze BQ</div>
+          <div class="pipe-tech">raw_grocery_<br/>transactions</div>
+        </div>
+        <div class="pipe-arrow">
+          <div>→</div>
+          <div class="pipe-arrow-label">dbt-ol<br/>run</div>
+        </div>
+        <div class="pipe-node" style="border-color: rgba(108,92,231,.4);">
+          <div class="pipe-icon">🥈</div>
+          <div class="pipe-label">Silver BQ</div>
+          <div class="pipe-tech">dim_* + fact_*<br/>Star Schema</div>
+        </div>
+        <div class="pipe-arrow">
+          <div>→</div>
+          <div class="pipe-arrow-label">dbt-ol<br/>run</div>
+        </div>
+        <div class="pipe-node" style="border-color: rgba(0,184,148,.4);">
+          <div class="pipe-icon">🥇</div>
+          <div class="pipe-label">Gold BQ</div>
+          <div class="pipe-tech">mart_sales_<br/>summary</div>
+        </div>
+      </div>
+      <div class="layers-row">
+        <div class="layer-badge" style="background:rgba(79,142,247,.1); border-color:rgba(79,142,247,.3); color:var(--blue);">⬆ Airflow Scheduler</div>
+        <div class="layer-badge" style="background:rgba(0,180,216,.1); border-color:rgba(0,180,216,.3); color:var(--cyan);">⬆ dbt Core + dbt-ol</div>
+        <div class="layer-badge" style="background:rgba(0,184,148,.1); border-color:rgba(0,184,148,.3); color:var(--green);">⬆ Dataplex OpenLineage</div>
+        <div class="layer-badge" style="background:rgba(253,203,110,.1); border-color:rgba(253,203,110,.3); color:var(--orange);">⬆ Terraform IaC</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4: TECH STACK ══ -->
+  <div class="slide" id="s3">
+    <h2 class="s-heading">Technology Stack</h2>
+    <p class="s-sub">Tools and frameworks powering the pipeline</p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-logo">🌀</div>
+        <div class="tech-name">Apache Airflow</div>
+        <div class="tech-role">Pipeline Orchestration</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">📦</div>
+        <div class="tech-name">dbt Core</div>
+        <div class="tech-role">SQL Transformations</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🔷</div>
+        <div class="tech-name">BigQuery</div>
+        <div class="tech-role">Cloud Data Warehouse</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🐘</div>
+        <div class="tech-name">PostgreSQL</div>
+        <div class="tech-role">Source Database</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🔭</div>
+        <div class="tech-name">OpenLineage</div>
+        <div class="tech-role">Data Lineage Tracking</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🗺️</div>
+        <div class="tech-name">GCP Dataplex</div>
+        <div class="tech-role">Lineage Visualization</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🏗️</div>
+        <div class="tech-name">Terraform</div>
+        <div class="tech-role">Infrastructure as Code</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🐳</div>
+        <div class="tech-name">Docker Compose</div>
+        <div class="tech-role">Local Dev Environment</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5: INGESTION ══ -->
+  <div class="slide" id="s4">
+    <h2 class="s-heading">Step 1 — Data Ingestion</h2>
+    <p class="s-sub">Batch extraction from PostgreSQL to BigQuery Bronze</p>
+    <div class="two-col">
+      <div class="code-block">
+        <pre><span class="cm"># batch_ingest_postgres_to_bq</span>
+
+<span class="kw">def</span> <span class="fn">_extract</span>(engine, table):
+    df = pd.<span class="fn">read_sql_query</span>(
+        <span class="str">f'SELECT * FROM "{table}"'</span>,
+        conn
+    )
+    <span class="kw">return</span> df
+
+<span class="cm"># Add metadata columns</span>
+df[<span class="str">'_ingested_at'</span>] = now
+df[<span class="str">'ingestion_date'</span>] = now.date()
+
+<span class="cm"># Load to BQ with partitioning</span>
+job_config = LoadJobConfig(
+    write_disposition=WRITE_APPEND,
+    time_partitioning=TimePartitioning(
+        field=<span class="str">'ingestion_date'</span>
+    )
+)
+client.<span class="fn">load_table_from_dataframe</span>(
+    df, bq_table, job_config
+)</pre>
+      </div>
+      <ul class="info-list">
+        <li class="info-item">
+          <span class="info-item-icon">📥</span>
+          <div class="info-item-text">
+            <strong>Source</strong>
+            Local Docker PostgreSQL container seeded with 1,980 grocery transaction records from CSV files.
+          </div>
+        </li>
+        <li class="info-item">
+          <span class="info-item-icon">🏷️</span>
+          <div class="info-item-text">
+            <strong>Metadata Stamping</strong>
+            Each row is enriched with <code>_ingested_at</code> timestamp and <code>_source_file</code> audit columns.
+          </div>
+        </li>
+        <li class="info-item">
+          <span class="info-item-icon">📊</span>
+          <div class="info-item-text">
+            <strong>Partitioned Loading</strong>
+            BigQuery table is day-partitioned by <code>ingestion_date</code> for cost-efficient query processing.
+          </div>
+        </li>
+        <li class="info-item">
+          <span class="info-item-icon">🔭</span>
+          <div class="info-item-text">
+            <strong>Lineage Emitted</strong>
+            OpenLineage START and COMPLETE events are posted to Dataplex after every table load.
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6: DBT MEDALLION ══ -->
+  <div class="slide" id="s5">
+    <h2 class="s-heading">Step 2 — Medallion Transformation</h2>
+    <p class="s-sub">dbt models build the Bronze → Silver → Gold data layers</p>
+    <div class="medal-row">
+      <div class="medal-col">
+        <div class="medal-col-header" style="color: #79C0FF;">🥉 Bronze Layer</div>
+        <div class="medal-table">bronze_transactions</div>
+        <div class="medal-model"><span class="medal-dot" style="background:#79C0FF;"></span>stg_grocery_transactions</div>
+        <div class="card-text" style="font-size:12px; margin-top:10px;">Staging model that cleans raw ingested data, casts types, and applies business naming conventions.</div>
+      </div>
+      <div class="medal-col">
+        <div class="medal-col-header" style="color: var(--indigo);">🥈 Silver Layer</div>
+        <div class="medal-table">silver_transactions</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--indigo);"></span>dim_customers</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--indigo);"></span>dim_products</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--indigo);"></span>dim_stores</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--pink);"></span>fact_grocery_transactions</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--orange);"></span>scd_customers <span style="margin-left:4px; font-size:10px; color:var(--orange);">[SCD Type 2]</span></div>
+        <div class="card-text" style="font-size:12px; margin-top:10px;">Star schema with dimension tables and a central fact table. SCD Type 2 snapshot tracks customer history over time.</div>
+      </div>
+      <div class="medal-col">
+        <div class="medal-col-header" style="color: var(--green);">🥇 Gold Layer</div>
+        <div class="medal-table">gold_transactions</div>
+        <div class="medal-model"><span class="medal-dot" style="background:var(--green);"></span>mart_sales_summary</div>
+        <div class="card-text" style="font-size:12px; margin-top:10px;">Aggregated business mart joining facts with dimensions. Ready for BI tools and dashboards with pre-computed KPIs.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7: OPENLINEAGE ══ -->
+  <div class="slide" id="s6">
+    <h2 class="s-heading">Data Lineage with OpenLineage</h2>
+    <p class="s-sub">Every data movement is tracked and visualised in GCP Dataplex</p>
+    <div style="display:flex; gap:40px; width:100%; max-width:980px; align-items:flex-start;">
+      <div class="lineage-flow">
+        <div class="lin-node" style="border-color:rgba(79,142,247,.4);">
+          <div class="lin-node-icon">🐘</div>
+          <div>
+            <div class="lin-node-label">postgres://postgres_source:5432</div>
+            <div class="lin-node-desc">transactions_db.grocery_transactions</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="lin-arrow"></div>
+          <div style="font-size:9px; color:var(--blue); font-family:'JetBrains Mono'; white-space:nowrap;">batch_ingest.grocery_transactions</div>
+          <div class="lin-arrow"></div>
+        </div>
+        <div class="lin-node" style="border-color:rgba(0,180,216,.4);">
+          <div class="lin-node-icon">🥉</div>
+          <div>
+            <div class="lin-node-label">bigquery://bronze_transactions</div>
+            <div class="lin-node-desc">raw_grocery_transactions → stg_grocery_transactions</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="lin-arrow"></div>
+          <div style="font-size:9px; color:var(--cyan); font-family:'JetBrains Mono'; white-space:nowrap;">dbt-ol: bronze + silver models</div>
+          <div class="lin-arrow"></div>
+        </div>
+        <div class="lin-node" style="border-color:rgba(108,92,231,.4);">
+          <div class="lin-node-icon">🥈</div>
+          <div>
+            <div class="lin-node-label">bigquery://silver_transactions</div>
+            <div class="lin-node-desc">dim_customers, dim_products, dim_stores, fact_*</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="lin-arrow"></div>
+          <div style="font-size:9px; color:var(--green); font-family:'JetBrains Mono'; white-space:nowrap;">dbt-ol: gold model</div>
+          <div class="lin-arrow"></div>
+        </div>
+        <div class="lin-node" style="border-color:rgba(0,184,148,.4);">
+          <div class="lin-node-icon">🥇</div>
+          <div>
+            <div class="lin-node-label">bigquery://gold_transactions</div>
+            <div class="lin-node-desc">mart_sales_summary</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:14px;">
+        <div class="card">
+          <div class="card-icon">📡</div>
+          <div class="card-title">HTTP Events to Dataplex</div>
+          <div class="card-text">OpenLineage RunEvents are HTTP-POSTed to the Dataplex <code style="font-family:monospace; font-size:11px; color:var(--cyan);">processOpenLineageRunEvent</code> REST endpoint after each task.</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔐</div>
+          <div class="card-title">ADC Authentication</div>
+          <div class="card-text">No service account keys needed. Google Application Default Credentials (ADC) are mounted from host and used to generate short-lived Bearer tokens at runtime.</div>
+        </div>
+        <div class="lin-result">
+          <div style="font-size:28px; margin-bottom:8px;">✅</div>
+          <div style="font-size:14px; font-weight:700; color:var(--green); margin-bottom:4px;">14+ Processes Registered in Dataplex</div>
+          <div style="font-size:12px; color:var(--muted);">Verified via REST API — full lineage graph from Postgres to mart_sales_summary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8: TERRAFORM ══ -->
+  <div class="slide" id="s7">
+    <h2 class="s-heading">Infrastructure as Code</h2>
+    <p class="s-sub">All GCP resources are provisioned and managed via Terraform</p>
+    <div class="tf-grid">
+      <div class="tf-resource">
+        <div class="tf-resource-header">
+          <div class="tf-resource-icon">🗄️</div>
+          <div>
+            <div class="tf-resource-name">BigQuery Datasets</div>
+            <div class="tf-resource-type">google_bigquery_dataset</div>
+          </div>
+        </div>
+        <div class="tf-detail">
+          Three datasets provisioned: <code>bronze_transactions</code>, <code>silver_transactions</code>, and <code>gold_transactions</code>. Each is labelled with its layer and environment for cost attribution.
+        </div>
+      </div>
+      <div class="tf-resource">
+        <div class="tf-resource-header">
+          <div class="tf-resource-icon">🔭</div>
+          <div>
+            <div class="tf-resource-name">Dataplex Lineage API</div>
+            <div class="tf-resource-type">google_project_service</div>
+          </div>
+        </div>
+        <div class="tf-detail">
+          Enables <code>datalineage.googleapis.com</code> on the project, allowing OpenLineage HTTP events from Airflow and dbt-ol to be ingested by GCP Dataplex automatically.
+        </div>
+      </div>
+      <div class="tf-resource">
+        <div class="tf-resource-header">
+          <div class="tf-resource-icon">🌍</div>
+          <div>
+            <div class="tf-resource-name">Project & Region</div>
+            <div class="tf-resource-type">provider "google"</div>
+          </div>
+        </div>
+        <div class="tf-detail">
+          Project: <code>e2e-data-pipeline-497509</code><br />
+          Region: <code>us-central1</code><br />
+          State: managed locally, can be migrated to GCS remote backend for team collaboration.
+        </div>
+      </div>
+      <div class="tf-resource">
+        <div class="tf-resource-header">
+          <div class="tf-resource-icon">🔑</div>
+          <div>
+            <div class="tf-resource-name">Authentication</div>
+            <div class="tf-resource-type">Application Default Credentials</div>
+          </div>
+        </div>
+        <div class="tf-detail">
+          Uses <code>gcloud auth application-default login</code>. No long-lived service account JSON keys required — follows GCP security best practices for developer workflows.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9: RESULTS ══ -->
+  <div class="slide" id="s8">
+    <h2 class="s-heading">Pipeline Results</h2>
+    <p class="s-sub">Verified metrics from the latest successful run</p>
+    <div class="results-grid">
+      <div class="metric-card">
+        <div class="glow-blue"></div>
+        <div class="metric-val" style="background:linear-gradient(135deg,var(--blue),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">37.6k</div>
+        <div class="metric-label">Rows in Bronze Layer</div>
+        <div class="metric-sub">raw_grocery_transactions</div>
+      </div>
+      <div class="metric-card">
+        <div class="glow-purple"></div>
+        <div class="metric-val" style="background:linear-gradient(135deg,var(--indigo),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">4+1</div>
+        <div class="metric-label">Silver dbt Models</div>
+        <div class="metric-sub">dims + fact + SCD snapshot</div>
+      </div>
+      <div class="metric-card">
+        <div class="glow-green"></div>
+        <div class="metric-val" style="background:linear-gradient(135deg,var(--green),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">14+</div>
+        <div class="metric-label">Lineage Processes</div>
+        <div class="metric-sub">Registered in Dataplex</div>
+      </div>
+    </div>
+    <div class="demo-steps">
+      <div class="demo-step">
+        <div class="step-num">1</div>
+        <div><strong>Start:</strong> docker compose up -d</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">2</div>
+        <div><strong>Trigger:</strong> docker exec airflow_scheduler bash -c "airflow dags unpause ntt_e2e_data_pipeline && airflow dags trigger ntt_e2e_data_pipeline"</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">3</div>
+        <div><strong>Monitor:</strong> Airflow UI at <strong>localhost:8080</strong> (admin / admin)</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">4</div>
+        <div><strong>Lineage:</strong> GCP Console → Dataplex → Catalog → Lineage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10: THANK YOU ══ -->
+  <div class="slide" id="s9">
+    <div class="s1-bg">
+      <div class="s1-orb" style="background:radial-gradient(circle,var(--green),transparent); top:-100px; right:-100px;"></div>
+      <div class="s1-orb" style="background:radial-gradient(circle,var(--cyan),transparent); bottom:-80px; left:-80px;"></div>
+    </div>
+    <div class="final-content">
+      <h2 class="final-title">Thank You!<br /><span>Questions Welcome</span></h2>
+      <p class="final-sub">
+        This project demonstrates a complete, production-grade GCP data engineering pipeline —
+        from infrastructure provisioning to automated transformation and data lineage observability.
+      </p>
+      <div class="final-grid">
+        <div class="final-item"><span class="check">✅</span>Automated daily pipeline with Airflow</div>
+        <div class="final-item"><span class="check">✅</span>Medallion Architecture (Bronze/Silver/Gold)</div>
+        <div class="final-item"><span class="check">✅</span>Star Schema + SCD Type 2</div>
+        <div class="final-item"><span class="check">✅</span>OpenLineage → GCP Dataplex</div>
+        <div class="final-item"><span class="check">✅</span>Infrastructure as Code (Terraform)</div>
+        <div class="final-item"><span class="check">✅</span>Local Docker dev environment</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<nav>
+  <button class="btn" id="prev-btn">← Prev</button>
+  <div id="dots"></div>
+  <div class="slide-counter" id="counter">1 / 10</div>
+  <button class="btn" id="next-btn">Next →</button>
+</nav>
+<div class="kbd-hint">← → arrow keys to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  const total = slides.length;
+  let current = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 600);
+    current = n;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    counter.textContent = `${current + 1} / ${total}`;
+  }
+
+  document.getElementById('prev-btn').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next-btn').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goTo(current - 1);
+  });
+</script>
+</body>
+</html>

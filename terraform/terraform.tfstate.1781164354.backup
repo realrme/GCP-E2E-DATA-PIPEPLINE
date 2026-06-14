@@ -1,0 +1,405 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.0",
+  "serial": 53,
+  "lineage": "29de55fb-2b96-a9a6-1057-eb3fd4ca5d3c",
+  "outputs": {
+    "bq_datasets": {
+      "value": {
+        "bronze": "bronze_transactions",
+        "gold": "gold_transactions",
+        "silver": "silver_transactions"
+      },
+      "type": [
+        "object",
+        {
+          "bronze": "string",
+          "gold": "string",
+          "silver": "string"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "bronze",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "krittapas.ti@ku.th",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1780542781937,
+            "dataset_id": "bronze_transactions",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": false,
+            "description": "Raw/Ingested transactions data layer",
+            "etag": "pTMGdO6EtOLqfOO5/dql5g==",
+            "friendly_name": "",
+            "id": "projects/e2e-data-pipeline-497509/datasets/bronze_transactions",
+            "is_case_insensitive": false,
+            "labels": {
+              "environment": "dev",
+              "layer": "bronze"
+            },
+            "last_modified_time": 1780542781937,
+            "location": "us-central1",
+            "max_time_travel_hours": "168",
+            "project": "e2e-data-pipeline-497509",
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/e2e-data-pipeline-497509/datasets/bronze_transactions",
+            "storage_billing_model": "",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "gold",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "krittapas.ti@ku.th",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1780542781844,
+            "dataset_id": "gold_transactions",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": false,
+            "description": "Aggregated reporting views and tables layer",
+            "etag": "63HdF5D5m9BkmhPfr0jzug==",
+            "friendly_name": "",
+            "id": "projects/e2e-data-pipeline-497509/datasets/gold_transactions",
+            "is_case_insensitive": false,
+            "labels": {
+              "environment": "dev",
+              "layer": "gold"
+            },
+            "last_modified_time": 1780542781844,
+            "location": "us-central1",
+            "max_time_travel_hours": "168",
+            "project": "e2e-data-pipeline-497509",
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/e2e-data-pipeline-497509/datasets/gold_transactions",
+            "storage_billing_model": "",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "silver",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "krittapas.ti@ku.th",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1780542781845,
+            "dataset_id": "silver_transactions",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": false,
+            "description": "Normalized/Cleaned transactions data layer",
+            "etag": "VWK5Xsg9DDvMt2ete4UoNQ==",
+            "friendly_name": "",
+            "id": "projects/e2e-data-pipeline-497509/datasets/silver_transactions",
+            "is_case_insensitive": false,
+            "labels": {
+              "environment": "dev",
+              "layer": "silver"
+            },
+            "last_modified_time": 1780542781845,
+            "location": "us-central1",
+            "max_time_travel_hours": "168",
+            "project": "e2e-data-pipeline-497509",
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/e2e-data-pipeline-497509/datasets/silver_transactions",
+            "storage_billing_model": "",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "postgres_instance",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "available_maintenance_versions": [],
+            "clone": [],
+            "connection_name": "e2e-data-pipeline-497509:us-central1:transactions-db-instance",
+            "database_version": "POSTGRES_14",
+            "deletion_protection": false,
+            "dns_name": "",
+            "encryption_key_name": null,
+            "first_ip_address": "34.30.160.90",
+            "id": "transactions-db-instance",
+            "instance_type": "CLOUD_SQL_INSTANCE",
+            "ip_address": [
+              {
+                "ip_address": "34.30.160.90",
+                "time_to_retire": "",
+                "type": "PRIMARY"
+              },
+              {
+                "ip_address": "34.45.156.54",
+                "time_to_retire": "",
+                "type": "OUTGOING"
+              }
+            ],
+            "maintenance_version": "POSTGRES_14_22.R20260319.04_04",
+            "master_instance_name": "",
+            "name": "transactions-db-instance",
+            "private_ip_address": "",
+            "project": "e2e-data-pipeline-497509",
+            "psc_service_attachment_link": "",
+            "public_ip_address": "34.30.160.90",
+            "region": "us-central1",
+            "replica_configuration": [],
+            "restore_backup_context": [],
+            "root_password": null,
+            "self_link": "https://sqladmin.googleapis.com/sql/v1beta4/projects/e2e-data-pipeline-497509/instances/transactions-db-instance",
+            "server_ca_cert": [
+              {
+                "cert": "-----BEGIN CERTIFICATE-----\nMIIDcTCCAlmgAwIBAgIBADANBgkqhkiG9w0BAQsFADBwMS0wKwYDVQQuEyRkMWEy\nM2M2NS1lMTc0LTRhZTUtOTJlOS0xN2Y3OTgyZTE0NDIxHDAaBgNVBAMTE0Nsb3Vk\nIFNRTCBTZXJ2ZXIgQ0ExFDASBgNVBAoTC0dvb2dsZSwgSW5jMQswCQYDVQQGEwJV\nUzAeFw0yNjA2MDkwODAyNTBaFw0zNjA2MDYwODAzNTBaMHAxLTArBgNVBC4TJGQx\nYTIzYzY1LWUxNzQtNGFlNS05MmU5LTE3Zjc5ODJlMTQ0MjEcMBoGA1UEAxMTQ2xv\ndWQgU1FMIFNlcnZlciBDQTEUMBIGA1UEChMLR29vZ2xlLCBJbmMxCzAJBgNVBAYT\nAlVTMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuPmbAEQinioKFVcm\nCXm235dHZmIFnpFwLGjEKHR60qC9vcDh5Oze4iDTsOzphphjscZreA+hSpCLNb1/\nILxh83YZkHrFVHM9W7/s0aF6/30xaIsjCskk7742rfVQ3wIx1vKMyLSQN7FFOgX6\ndIkFuwKrH2L5xW6vT3Hv+AWtTFciZdCxJ3gKClyp93FcWPrzzPkO+ZdEHCTJWA3I\nr+fbsxKgQTzo17k8dyAV6HHdoDvcLs/a/zcXRkS4pIl17Jr29wJO35RMEwiskr31\nA531/7tjBL8Ml42UH/QzIK62OQsOjvobpVzlWiePPXa8FdF1b40jUzxqvghcuSIR\n5KhnJQIDAQABoxYwFDASBgNVHRMBAf8ECDAGAQH/AgEAMA0GCSqGSIb3DQEBCwUA\nA4IBAQBG3Zd3Cgy/N/XZ9++uLgTzHYzDt5J3S6dATqospRiEfrxMaVFLlmA9voig\nn0deKV1v/qc+KvRVn812UPgT8aUMe8mso51U+9+oNBmRyVQHB9OsU8FmKNrPbCLq\nrLj0zZLxEx9P+WLqe9z8DCblAHHDZMJnszR0igMkcCiY13kaXis7878ioRMU2uk1\nV48dWOZaZLU4/GLiZChm4uu3Jh3+x4EpyZAwT3MKv39SzpTpRN67vSApeZu2Axc5\nh8AlhMV56X8CaGRjoitnbmRYsPnEBV0l3R7l5TPvcpTQlnSgbhZ35ZWXrlcq7bpT\nf3WN6F4mJrAFhq9BP/8iJu9FeP4S\n-----END CERTIFICATE-----",
+                "common_name": "C=US,O=Google\\, Inc,CN=Cloud SQL Server CA,dnQualifier=d1a23c65-e174-4ae5-92e9-17f7982e1442",
+                "create_time": "2026-06-09T08:02:50.944Z",
+                "expiration_time": "2036-06-06T08:03:50.944Z",
+                "sha1_fingerprint": "185694426f5f72ee58ef62dbefb8419ed60fd369"
+              }
+            ],
+            "service_account_email_address": "p341400445320-6fcflk@gcp-sa-cloud-sql.iam.gserviceaccount.com",
+            "settings": [
+              {
+                "activation_policy": "ALWAYS",
+                "active_directory_config": [],
+                "advanced_machine_features": [],
+                "availability_type": "ZONAL",
+                "backup_configuration": [
+                  {
+                    "backup_retention_settings": [
+                      {
+                        "retained_backups": 7,
+                        "retention_unit": "COUNT"
+                      }
+                    ],
+                    "binary_log_enabled": false,
+                    "enabled": false,
+                    "location": "",
+                    "point_in_time_recovery_enabled": false,
+                    "start_time": "19:00",
+                    "transaction_log_retention_days": 7
+                  }
+                ],
+                "collation": "",
+                "connector_enforcement": "NOT_REQUIRED",
+                "data_cache_config": [],
+                "database_flags": [],
+                "deletion_protection_enabled": false,
+                "deny_maintenance_period": [],
+                "disk_autoresize": true,
+                "disk_autoresize_limit": 0,
+                "disk_size": 10,
+                "disk_type": "PD_SSD",
+                "edition": "ENTERPRISE",
+                "insights_config": [],
+                "ip_configuration": [
+                  {
+                    "allocated_ip_range": "",
+                    "authorized_networks": [
+                      {
+                        "expiration_time": "",
+                        "name": "all",
+                        "value": "0.0.0.0/0"
+                      }
+                    ],
+                    "enable_private_path_for_google_cloud_services": false,
+                    "ipv4_enabled": true,
+                    "private_network": "",
+                    "psc_config": [],
+                    "require_ssl": false
+                  }
+                ],
+                "location_preference": [
+                  {
+                    "follow_gae_application": "",
+                    "secondary_zone": "",
+                    "zone": "us-central1-c"
+                  }
+                ],
+                "maintenance_window": [],
+                "password_validation_policy": [],
+                "pricing_plan": "PER_USE",
+                "sql_server_audit_config": [],
+                "tier": "db-f1-micro",
+                "time_zone": "",
+                "user_labels": {},
+                "version": 6
+              }
+            ],
+            "timeouts": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "root_password"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAwLCJkZWxldGUiOjE4MDAwMDAwMDAwMDAsInVwZGF0ZSI6MTgwMDAwMDAwMDAwMH19"
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

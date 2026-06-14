@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: mart_sales_summary
+    description: >
+      **Gold Layer — Sales Summary Mart**
+
+      Business-ready aggregated reporting table joining the fact table with all three
+      dimension tables (stores, products, customers). Produces daily KPI metrics
+      grouped by store × product × date — the primary source for Looker Studio dashboards.
+
+      **Materialization:** View — no storage cost, always reflects the freshest Silver data.
+
+      **Use cases:**
+      - Daily revenue reporting by store and product
+      - Discount impact analysis
+      - Loyalty points tracking by product/aisle
+      - Basket value trends over time
+    columns:
+      - name: store_name
+        description: "Name of the store location where the transactions occurred."
+      - name: product_name
+        description: "Name of the grocery product purchased."
+      - name: product_aisle
+        description: "Aisle in the store where the product is located."
+      - name: transaction_date
+        description: "Date of the transactions in this aggregated row (DATE type, truncated from timestamp)."
+      - name: total_transactions
+        description: "Count of distinct transaction events for this store × product × date combination."
+      - name: total_items_sold
+        description: "Total quantity of units sold across all transactions in this group."
+      - name: total_revenue
+        description: "Gross revenue (before discounts) rounded to 2 decimal places."
+      - name: total_discount
+        description: "Total discount amount applied, rounded to 2 decimal places."
+      - name: net_revenue
+        description: "Actual revenue after discounts (total_revenue − total_discount), rounded to 2 decimal places."
+      - name: avg_basket_value
+        description: "Average final_amount (net) per transaction in this group, rounded to 2 decimal places."
+      - name: total_loyalty_pts
+        description: "Sum of loyalty points earned across all transactions in this group."
