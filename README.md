@@ -193,8 +193,6 @@ Business-ready VIEW joining all Silver tables. Aggregated daily KPIs by store ×
 
 ---
 
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE)
