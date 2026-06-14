@@ -1,0 +1,12 @@
+# ============================================================
+# GitHub Linguist overrides
+# Tell GitHub which files to exclude from language statistics
+# so the repo correctly shows Python, SQL, HCL, YAML as the
+# primary languages — not HTML from the presentation folder.
+# ============================================================
+
+# Presentation slides & dashboard — mark as documentation (excluded from stats)
+presentation/*.html linguist-documentation=true
+
+# Also exclude any other generated/static assets if added later
+presentation/**    linguist-documentation=true

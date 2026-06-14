@@ -195,12 +195,6 @@ Business-ready VIEW joining all Silver tables. Aggregated daily KPIs by store ×
 
 ---
 
-## Dashboard
-
-Open `presentation/dashboard.html` in a browser for an interactive sales analytics dashboard built from the `mart_sales_summary` schema (simulated data).
-
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE)
