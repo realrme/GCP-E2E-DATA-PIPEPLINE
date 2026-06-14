@@ -2,8 +2,85 @@ version: 2
 
 sources:
   - name: bronze
+    description: >
+      Raw ingestion layer. Data is loaded from the local PostgreSQL source database
+      via the Airflow `batch_ingest_postgres_to_bq` task.
     database: e2e-data-pipeline-497509
     schema: bronze_transactions
     tables:
       - name: raw_grocery_transactions
-        description: "Raw ingested grocery chain transactions partitioned by ingestion_date"
+        description: >
+          Raw grocery chain transaction records. One row per product line item per transaction.
+          Partitioned by `ingestion_date` for cost-efficient incremental loading.
+        columns:
+          - name: transaction_id
+            description: "Original source transaction ID from PostgreSQL."
+          - name: customer_id
+            description: "Customer identifier from the source system."
+          - name: store_name
+            description: "Store name (raw, unformatted from source)."
+          - name: product_name
+            description: "Product name (raw, unformatted from source)."
+          - name: aisle
+            description: "Store aisle for this product (raw from source)."
+          - name: quantity
+            description: "Number of units purchased."
+          - name: unit_price
+            description: "Price per unit before discount."
+          - name: total_amount
+            description: "Gross line total (unit_price × quantity)."
+          - name: discount_amount
+            description: "Discount applied to this line item."
+          - name: final_amount
+            description: "Net amount after discount."
+          - name: loyalty_points
+            description: "Loyalty points earned on this line item."
+          - name: transaction_date
+            description: "Timestamp of the original transaction."
+          - name: _ingested_at
+            description: "UTC timestamp when Airflow loaded this record into BigQuery."
+          - name: _source_file
+            description: "Audit column identifying the PostgreSQL table this row came from."
+          - name: ingestion_date
+            description: "Date partition key — the DATE portion of _ingested_at."
+
+models:
+  - name: stg_grocery_transactions
+    description: >
+      **Bronze Layer — Staging Model**
+
+      Cleans and standardizes raw grocery transactions from the `raw_grocery_transactions`
+      source table. Applies type casting, column renaming, and light business logic.
+      Downstream Silver models all reference this staging model via `ref()`.
+      Materialized as a **table**.
+    columns:
+      - name: transaction_id
+        description: "Source transaction ID, cast to STRING."
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Customer identifier, cast to STRING."
+        tests:
+          - not_null
+      - name: store_name
+        description: "Store name from source."
+      - name: product_name
+        description: "Product name from source."
+      - name: aisle
+        description: "Aisle label from source."
+      - name: quantity
+        description: "Units purchased, cast to INTEGER."
+      - name: unit_price
+        description: "Unit price, cast to FLOAT."
+      - name: total_amount
+        description: "Gross total, cast to FLOAT."
+      - name: discount_amount
+        description: "Discount amount, cast to FLOAT."
+      - name: final_amount
+        description: "Net amount after discount, cast to FLOAT."
+      - name: loyalty_points
+        description: "Loyalty points earned, cast to INTEGER."
+      - name: transaction_date
+        description: "Transaction timestamp."
+      - name: ingestion_date
+        description: "Date the record was loaded into BigQuery."

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grocery Chain — Sales Analytics Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0A0E1A;
+      --bg2:     #111827;
+      --bg3:     #1C2333;
+      --border:  rgba(255,255,255,0.07);
+      --text:    #E2E8F0;
+      --muted:   #64748B;
+      --blue:    #3B82F6;
+      --cyan:    #06B6D4;
+      --green:   #10B981;
+      --yellow:  #F59E0B;
+      --red:     #EF4444;
+      --purple:  #8B5CF6;
+      --pink:    #EC4899;
+      --orange:  #F97316;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-text { font-size: 16px; font-weight: 700; }
+    .logo-sub  { font-size: 11px; color: var(--muted); font-weight: 400; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: var(--green);
+      display: flex; align-items: center; gap: 6px; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .last-refresh { font-size: 11px; color: var(--muted); }
+
+    /* ── Filters Bar ── */
+    .filters {
+      display: flex; align-items: center; gap: 12px; padding: 14px 32px;
+      background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .filter-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    select, .filter-btn {
+      background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 7px 14px; font-size: 12px; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    select:hover, .filter-btn:hover { border-color: var(--blue); }
+    .filter-btn { background: linear-gradient(135deg, var(--blue), var(--cyan)); border: none;
+      font-weight: 600; color: #fff; }
+    .filter-divider { width: 1px; height: 20px; background: var(--border); }
+
+    /* ── Main Layout ── */
+    main { padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── KPI Cards ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+    .kpi {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 18px; position: relative; overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .kpi:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.3); }
+    .kpi-glow { position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 14px 14px 0 0; }
+    .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .kpi-value { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+    .kpi-change { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+    .up   { color: var(--green); }
+    .down { color: var(--red); }
+
+    /* ── Charts Grid ── */
+    .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px 24px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .card-title { font-size: 14px; font-weight: 700; }
+    .card-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .tag { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+    .tag-blue { background: rgba(59,130,246,.15); color: var(--blue); }
+    .tag-green { background: rgba(16,185,129,.15); color: var(--green); }
+
+    /* ── SVG Charts ── */
+    svg { width: 100%; overflow: visible; }
+
+    /* ── Bar Chart ── */
+    .bar { cursor: pointer; transition: opacity 0.2s; }
+    .bar:hover { opacity: 0.8; }
+
+    /* ── Donut ── */
+    .donut-legend { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; margin-right: 8px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { text-align: left; padding: 8px 12px; color: var(--muted); font-weight: 600;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; cursor: default; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td { padding: 10px 12px; }
+    .td-num { font-family: 'JetBrains Mono', monospace; text-align: right; }
+    .rank { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 700; }
+    .rank-1 { background: rgba(245,158,11,.2); color: var(--yellow); }
+    .rank-2 { background: rgba(100,116,139,.2); color: #94A3B8; }
+    .rank-3 { background: rgba(234,88,12,.2); color: var(--orange); }
+    .rank-n { background: rgba(255,255,255,.06); color: var(--muted); }
+
+    /* ── Progress bar ── */
+    .prog-bar { height: 5px; border-radius: 3px; background: var(--bg3); margin-top: 4px; }
+    .prog-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+    /* ── Heatmap ── */
+    .heatmap-grid { display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 3px; }
+    .hm-label { font-size: 9px; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+    .hm-cell { aspect-ratio: 1; border-radius: 3px; transition: transform 0.15s; cursor: pointer; }
+    .hm-cell:hover { transform: scale(1.2); }
+    .hm-day-labels { display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 3px; margin-bottom: 4px; }
+    .hm-day { font-size: 9px; color: var(--muted); text-align: center; }
+
+    /* ── Sparkline ── */
+    .sparkline { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+    .spark-bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--blue); opacity: 0.6; transition: opacity 0.2s; }
+    .spark-bar.active { opacity: 1; }
+    .spark-bar:hover { opacity: 1; }
+
+    @media (max-width: 1200px) {
+      .kpi-row { grid-template-columns: repeat(3,1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+      .charts-row-3 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛒</div>
+    <div>
+      <div class="logo-text">GroceryChain Analytics</div>
+      <div class="logo-sub">Gold Layer · mart_sales_summary</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="last-refresh">Last refresh: <strong>Today, 16:00 UTC+7</strong></div>
+    <div class="badge"><span class="badge-dot"></span>Live · BigQuery</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ FILTERS ═══════════════════════════════ -->
+<div class="filters">
+  <span class="filter-label">Period:</span>
+  <select id="periodFilter">
+    <option>Last 30 days</option>
+    <option selected>Last 90 days</option>
+    <option>Last 6 months</option>
+    <option>Year to date</option>
+  </select>
+  <span class="filter-label">Store:</span>
+  <select id="storeFilter">
+    <option selected>All Stores</option>
+    <option>Downtown Market</option>
+    <option>Riverside Plaza</option>
+    <option>Uptown Fresh</option>
+    <option>Eastside Grocery</option>
+    <option>Westpark Store</option>
+  </select>
+  <span class="filter-label">Aisle:</span>
+  <select id="aisleFilter">
+    <option selected>All Aisles</option>
+    <option>Produce</option>
+    <option>Dairy</option>
+    <option>Bakery</option>
+    <option>Meat &amp; Seafood</option>
+    <option>Beverages</option>
+    <option>Snacks</option>
+    <option>Frozen Foods</option>
+  </select>
+  <div class="filter-divider"></div>
+  <button class="filter-btn" onclick="refresh()">↻ Refresh</button>
+</div>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--blue),var(--cyan));"></div>
+      <div class="kpi-label">Net Revenue</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">$284.7K</div>
+      <div class="kpi-change up">▲ 12.4% vs prev period</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--green),#34D399);"></div>
+      <div class="kpi-label">Total Transactions</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--green),#34D399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">37,620</div>
+      <div class="kpi-change up">▲ 8.1% vs prev period</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--purple),var(--pink));"></div>
+      <div class="kpi-label">Avg Basket Value</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">$7.57</div>
+      <div class="kpi-change up">▲ 3.9% vs prev period</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--yellow),var(--orange));"></div>
+      <div class="kpi-label">Items Sold</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--yellow),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">98,140</div>
+      <div class="kpi-change up">▲ 5.6% vs prev period</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--red),var(--pink));"></div>
+      <div class="kpi-label">Total Discount</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--red),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">$28.3K</div>
+      <div class="kpi-change down">▼ 9.9% of gross revenue</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-glow" style="background:linear-gradient(90deg,var(--cyan),var(--blue));"></div>
+      <div class="kpi-label">Loyalty Points</div>
+      <div class="kpi-value" style="background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">1.24M</div>
+      <div class="kpi-change up">▲ 14.2% vs prev period</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Revenue Trend + Revenue by Store -->
+  <div class="charts-row">
+    <!-- Revenue Trend -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Net Revenue Trend</div>
+          <div class="card-sub">Daily net_revenue grouped across all stores</div>
+        </div>
+        <span class="tag tag-blue">mart_sales_summary</span>
+      </div>
+      <svg id="revChart" viewBox="0 0 700 180" height="180"></svg>
+    </div>
+
+    <!-- Revenue by Store Donut -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Net Revenue by Store</div>
+          <div class="card-sub">store_name distribution</div>
+        </div>
+      </div>
+      <svg id="donutChart" viewBox="0 0 200 200" height="160" style="display:block;margin:0 auto;"></svg>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Top Products + Aisle Breakdown + Discount Analysis -->
+  <div class="charts-row-3">
+
+    <!-- Top Products by Net Revenue -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Top Products</div>
+          <div class="card-sub">Ranked by net_revenue</div>
+        </div>
+        <span class="tag tag-green">product_name</span>
+      </div>
+      <table id="topProducts">
+        <thead><tr><th>#</th><th>Product</th><th>Aisle</th><th style="text-align:right">Revenue</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Aisle Performance Bar Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Revenue by Aisle</div>
+          <div class="card-sub">product_aisle · total_items_sold</div>
+        </div>
+      </div>
+      <svg id="aisleChart" viewBox="0 0 280 200" height="200"></svg>
+    </div>
+
+    <!-- Avg Basket Value by Store -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Avg Basket Value</div>
+          <div class="card-sub">avg_basket_value per store</div>
+        </div>
+      </div>
+      <div id="basketTable" style="display:flex;flex-direction:column;gap:14px;margin-top:4px;"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Transaction Heatmap + Loyalty + Daily Volume -->
+  <div class="charts-row">
+    <!-- Transaction Heatmap -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Daily Transaction Heatmap</div>
+          <div class="card-sub">total_transactions by day of week · last 12 weeks</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);">
+          Low <div style="display:flex;gap:2px;margin:0 4px;" id="heatLegend"></div> High
+        </div>
+      </div>
+      <div class="hm-day-labels" id="hmDayLabels"></div>
+      <div class="heatmap-grid" id="heatmap"></div>
+    </div>
+
+    <!-- Loyalty Points by Store -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Loyalty Points Earned</div>
+          <div class="card-sub">total_loyalty_pts per store</div>
+        </div>
+      </div>
+      <svg id="loyaltyChart" viewBox="0 0 260 200" height="200"></svg>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════ DATA (based on mart_sales_summary schema) ═══════
+
+const STORES = ['Downtown Market','Riverside Plaza','Uptown Fresh','Eastside Grocery','Westpark Store'];
+const STORE_COLORS = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#EC4899'];
+const AISLES = ['Produce','Dairy','Bakery','Meat & Seafood','Beverages','Snacks','Frozen Foods'];
+
+// KPI seed data
+const storeRevenue  = [74200, 61400, 55800, 52100, 41200];
+const storeLoyalty  = [312000, 278000, 234000, 198000, 218000];
+const storeBasket   = [8.12, 7.84, 7.23, 6.97, 7.65];
+const aisleRevenue  = [52000, 41000, 36000, 48000, 31000, 29000, 47700];
+const aisleItems    = [14200, 9800, 8700, 6200, 11400, 12800, 8500];
+
+const TOP_PRODUCTS = [
+  { name:'Organic Avocado',   aisle:'Produce',        rev: 18420 },
+  { name:'Whole Milk 1L',     aisle:'Dairy',          rev: 15800 },
+  { name:'Salmon Fillet',     aisle:'Meat & Seafood', rev: 14200 },
+  { name:'Sparkling Water',   aisle:'Beverages',      rev: 12900 },
+  { name:'Sourdough Loaf',    aisle:'Bakery',         rev: 11600 },
+  { name:'Frozen Pizza',      aisle:'Frozen Foods',   rev: 10800 },
+  { name:'Greek Yogurt',      aisle:'Dairy',          rev: 9750  },
+  { name:'Tortilla Chips',    aisle:'Snacks',         rev: 8940  },
+];
+
+// Generate 90 days of revenue data
+function genDailyRevenue() {
+  const out = []; let base = 2800;
+  for(let i = 89; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const dow = d.getDay();
+    const weekend = (dow === 0 || dow === 6) ? 1.3 : 1.0;
+    const noise = (Math.random() - 0.5) * 400;
+    const trend = (89 - i) * 3;
+    out.push({ date: d, value: Math.max(1800, base + noise + trend) * weekend });
+    base += (Math.random() - 0.48) * 60;
+  }
+  return out;
+}
+const dailyRev = genDailyRevenue();
+
+// ═══════ RENDER FUNCTIONS ═══════
+
+// 1. Revenue Line Chart
+function drawRevChart() {
+  const svg = document.getElementById('revChart');
+  const W=700, H=180, pad={t:10,r:10,b:30,l:50};
+  const iW = W - pad.l - pad.r;
+  const iH = H - pad.t - pad.b;
+
+  const vals = dailyRev.map(d=>d.value);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const scaleX = i => pad.l + (i/(vals.length-1)) * iW;
+  const scaleY = v => pad.t + iH - ((v-minV)/(maxV-minV)) * iH;
+
+  let path='', area='';
+  vals.forEach((v,i)=>{
+    const x=scaleX(i), y=scaleY(v);
+    path += (i===0?'M':'L') + `${x},${y}`;
+    area += (i===0?`M${x},${pad.t+iH}L${x},${y}`:`L${x},${y}`);
+  });
+  area += `L${scaleX(vals.length-1)},${pad.t+iH}Z`;
+
+  // Y gridlines
+  let gridHTML='';
+  for(let i=0;i<=4;i++){
+    const y = pad.t + (iH/4)*i;
+    const val = maxV - (maxV-minV)/4*i;
+    gridHTML += `<line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+    gridHTML += `<text x="${pad.l-6}" y="${y+4}" fill="#64748B" font-size="9" text-anchor="end">$${(val/1000).toFixed(1)}K</text>`;
+  }
+
+  // X labels (every 15 days)
+  let xLabels = '';
+  dailyRev.forEach((d,i)=>{
+    if(i%15===0){
+      const x=scaleX(i);
+      xLabels+=`<text x="${x}" y="${H-4}" fill="#64748B" font-size="9" text-anchor="middle">${d.date.toLocaleDateString('en',{month:'short',day:'numeric'})}</text>`;
+    }
+  });
+
+  const gradId='revGrad';
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${gridHTML}
+    <path d="${area}" fill="url(#${gradId})"/>
+    <path d="${path}" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linejoin="round"/>
+    ${xLabels}
+  `;
+}
+
+// 2. Donut Chart
+function drawDonut() {
+  const svg = document.getElementById('donutChart');
+  const total = storeRevenue.reduce((a,b)=>a+b,0);
+  const cx=100, cy=100, r=70, inner=46;
+  let startAngle = -Math.PI/2;
+  let paths='';
+
+  storeRevenue.forEach((v,i)=>{
+    const angle = (v/total)*2*Math.PI;
+    const endAngle = startAngle + angle;
+    const x1=cx+r*Math.cos(startAngle), y1=cy+r*Math.sin(startAngle);
+    const x2=cx+r*Math.cos(endAngle),   y2=cy+r*Math.sin(endAngle);
+    const ix1=cx+inner*Math.cos(startAngle), iy1=cy+inner*Math.sin(startAngle);
+    const ix2=cx+inner*Math.cos(endAngle),   iy2=cy+inner*Math.sin(endAngle);
+    const largeArc = angle > Math.PI ? 1 : 0;
+    paths += `<path d="M${ix1},${iy1} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} L${ix2},${iy2} A${inner},${inner} 0 ${largeArc},0 ${ix1},${iy1}Z"
+      fill="${STORE_COLORS[i]}" opacity="0.85" class="bar"/>`;
+    startAngle = endAngle;
+  });
+
+  svg.innerHTML = paths + `
+    <text x="${cx}" y="${cy-6}" text-anchor="middle" fill="#E2E8F0" font-size="16" font-weight="800">$284.7K</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" fill="#64748B" font-size="9">Net Revenue</text>
+  `;
+
+  // Legend
+  const leg = document.getElementById('donutLegend');
+  leg.innerHTML = storeRevenue.map((v,i)=>`
+    <div class="legend-item">
+      <div style="display:flex;align-items:center;gap:0;">
+        <div class="legend-dot" style="background:${STORE_COLORS[i]};"></div>
+        <span style="color:#CBD5E1">${STORES[i]}</span>
+      </div>
+      <span style="color:#94A3B8;font-family:'JetBrains Mono';font-size:11px;">$${(v/1000).toFixed(1)}K</span>
+    </div>
+  `).join('');
+}
+
+// 3. Top Products Table
+function drawTopProducts() {
+  const tbody = document.querySelector('#topProducts tbody');
+  const maxRev = TOP_PRODUCTS[0].rev;
+  tbody.innerHTML = TOP_PRODUCTS.map((p,i)=>{
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const pct = (p.rev/maxRev*100).toFixed(0);
+    return `<tr>
+      <td><div class="rank ${rankClass}">${i+1}</div></td>
+      <td>
+        <div style="font-size:12px;font-weight:500;">${p.name}</div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${i<3?'var(--blue)':'#334155'};"></div></div>
+      </td>
+      <td style="color:var(--muted);font-size:11px;">${p.aisle}</td>
+      <td class="td-num">$${p.rev.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// 4. Aisle Bar Chart
+function drawAisleChart() {
+  const svg = document.getElementById('aisleChart');
+  const W=280, H=200, padL=70, padB=20, padT=6, padR=10;
+  const iW = W-padL-padR, iH = H-padB-padT;
+  const maxV = Math.max(...aisleRevenue);
+  const barH = iH/AISLES.length - 5;
+
+  let bars='';
+  AISLES.forEach((a,i)=>{
+    const y = padT + i*(iH/AISLES.length);
+    const w = (aisleRevenue[i]/maxV)*iW;
+    const hue = 200 + i*20;
+    bars += `
+      <rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="3"
+        fill="hsl(${hue},75%,55%)" opacity="0.8" class="bar"/>
+      <text x="${padL-6}" y="${y+barH/2+4}" fill="#CBD5E1" font-size="10" text-anchor="end">${a}</text>
+      <text x="${padL+w+4}" y="${y+barH/2+4}" fill="#94A3B8" font-size="9">$${(aisleRevenue[i]/1000).toFixed(0)}K</text>
+    `;
+  });
+
+  svg.innerHTML = bars;
+}
+
+// 5. Basket Value per Store
+function drawBasket() {
+  const el = document.getElementById('basketTable');
+  const max = Math.max(...storeBasket);
+  el.innerHTML = STORES.map((s,i)=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;color:#CBD5E1;">${s}</span>
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:600;color:${STORE_COLORS[i]};">$${storeBasket[i].toFixed(2)}</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" style="width:${(storeBasket[i]/max*100).toFixed(0)}%;background:${STORE_COLORS[i]};"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 6. Heatmap
+function drawHeatmap() {
+  const days = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+  // day labels
+  const dayLabelsEl = document.getElementById('hmDayLabels');
+  dayLabelsEl.innerHTML = '<div></div>' + days.map(d=>`<div class="hm-day">${d}</div>`).join('');
+
+  const hm = document.getElementById('heatmap');
+  const weeks = 12;
+  const rows = [];
+
+  // Generate 12 weeks × 7 days of tx count data
+  const txData = [];
+  for(let w=0;w<weeks;w++){
+    for(let d=0;d<7;d++){
+      const isWeekend = d>=5;
+      const base = isWeekend ? 520 : 380;
+      txData.push(Math.round(base + (Math.random()-0.5)*160));
+    }
+  }
+  const minTx = Math.min(...txData), maxTx = Math.max(...txData);
+
+  let html = '';
+  for(let d=0;d<7;d++){
+    html += `<div class="hm-label" style="grid-row:${d+1}">${days[d]}</div>`;
+    for(let w=0;w<weeks;w++){
+      const val = txData[w*7+d];
+      const t = (val-minTx)/(maxTx-minTx);
+      const r=Math.round(59+t*(16-59)), g=Math.round(130+t*(185-130)), b=Math.round(246+t*(129-246));
+      html += `<div class="hm-cell" style="background:rgb(${r},${g},${b});grid-column:${w+2};grid-row:${d+1};"
+        title="${val} transactions"></div>`;
+    }
+  }
+  hm.innerHTML = html;
+
+  // legend swatches
+  const legEl = document.getElementById('heatLegend');
+  legEl.innerHTML = [0.1,0.3,0.5,0.7,0.9].map(t=>{
+    const r=Math.round(59+t*(16-59)), g=Math.round(130+t*(185-130)), b=Math.round(246+t*(129-246));
+    return `<div style="width:12px;height:12px;border-radius:2px;background:rgb(${r},${g},${b});"></div>`;
+  }).join('');
+}
+
+// 7. Loyalty Line Chart
+function drawLoyalty() {
+  const svg = document.getElementById('loyaltyChart');
+  const W=260, H=200, pad={t:10,r:10,b:40,l:16};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  const max = Math.max(...storeLoyalty);
+
+  const barW = iW/STORES.length - 8;
+  let bars='';
+  STORES.forEach((s,i)=>{
+    const x = pad.l + i*(iW/STORES.length);
+    const h = (storeLoyalty[i]/max)*iH;
+    const y = pad.t + iH - h;
+    bars += `
+      <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="4"
+        fill="${STORE_COLORS[i]}" opacity="0.75" class="bar"/>
+      <text x="${x+barW/2}" y="${y-5}" fill="#94A3B8" font-size="8" text-anchor="middle">${(storeLoyalty[i]/1000).toFixed(0)}K</text>
+      <text x="${x+barW/2}" y="${pad.t+iH+14}" fill="#64748B" font-size="8" text-anchor="middle">${s.split(' ')[0]}</text>
+    `;
+  });
+  svg.innerHTML = bars;
+}
+
+// ═══════ INIT ═══════
+function refresh() {
+  drawRevChart();
+  drawDonut();
+  drawTopProducts();
+  drawAisleChart();
+  drawBasket();
+  drawHeatmap();
+  drawLoyalty();
+}
+
+document.addEventListener('DOMContentLoaded', refresh);
+window.addEventListener('resize', refresh);
+</script>
+</body>
+</html>
