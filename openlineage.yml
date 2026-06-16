@@ -1,6 +1,0 @@
-transport:
-  type: http
-  url: "https://datalineage.googleapis.com"
-  endpoint: "v1/projects/e2e-data-pipeline-497509/locations/us-central1:processOpenLineageRunEvent"
-  auth:
-    type: gcp

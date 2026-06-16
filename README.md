@@ -15,19 +15,12 @@ graph TD
 
     subgraph "GCP BigQuery"
         INGEST -->|load raw rows| BRONZE["🥉 Bronze Layer\nbronze_transactions\n└─ raw_grocery_transactions"]
-        BRONZE -->|dbt-ol run| SILVER["🥈 Silver Layer\nsilver_transactions\n├─ stg_grocery_transactions\n├─ dim_customers\n├─ dim_products\n├─ dim_stores\n├─ fact_grocery_transactions\n└─ scd_customers (SCD Type 2)"]
-        SILVER -->|dbt-ol run| GOLD["🥇 Gold Layer\ngold_transactions\n└─ mart_sales_summary (VIEW)"]
-    end
-
-    subgraph "Observability"
-        INGEST -->|OpenLineage events| DPX[GCP Dataplex\nData Lineage API]
-        SILVER -->|OpenLineage events| DPX
-        GOLD -->|OpenLineage events| DPX
+        BRONZE -->|dbt run| SILVER["🥈 Silver Layer\nsilver_transactions\n├─ stg_grocery_transactions\n├─ dim_customers\n├─ dim_products\n├─ dim_stores\n├─ fact_grocery_transactions\n└─ scd_customers (SCD Type 2)"]
+        SILVER -->|dbt run| GOLD["🥇 Gold Layer\ngold_transactions\n└─ mart_sales_summary (VIEW)"]
     end
 
     subgraph "IaC"
         TF[Terraform] -.->|provisions| BQ_DS[BigQuery Datasets\nbronze / silver / gold]
-        TF -.->|enables| DPX
     end
 ```
 
@@ -40,9 +33,7 @@ graph TD
 | Orchestration | Apache Airflow 2.7 | DAG scheduling & task management |
 | Source DB | PostgreSQL 15 (Docker) | Simulated transactional source system |
 | Transformation | dbt Core + dbt-bigquery | Medallion layer SQL models |
-| Lineage | dbt-ol + openlineage-python | Emit lineage events |
 | Data Warehouse | Google BigQuery | Cloud analytics store |
-| Observability | GCP Dataplex Data Lineage | Lineage graph visualisation |
 | Infrastructure | Terraform | BigQuery datasets & API provisioning |
 | Local Dev | Docker Compose | Full local stack (Airflow + Postgres) |
 
@@ -199,25 +190,6 @@ Business-ready VIEW joining all Silver tables. Aggregated daily KPIs by store ×
 - `total_transactions`, `total_items_sold`
 - `total_revenue`, `total_discount`, `net_revenue`
 - `avg_basket_value`, `total_loyalty_pts`
-
----
-
-## Data Lineage
-
-OpenLineage events are emitted to GCP Dataplex after each pipeline task. View the full lineage graph in:
-
-**GCP Console → Dataplex → Catalog → Lineage**
-
-The lineage traces the full path:
-```
-postgres://postgres_source → BigQuery:bronze → BigQuery:silver → BigQuery:gold
-```
-
----
-
-## Dashboard
-
-Open `presentation/dashboard.html` in a browser for an interactive sales analytics dashboard built from the `mart_sales_summary` schema (simulated data).
 
 ---
 
